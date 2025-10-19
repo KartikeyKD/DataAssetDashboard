@@ -8,6 +8,8 @@ import { DecompositionTree } from "./DecompositionTree";
 import { TreeNodeData } from "./TreeNode";
 import DrilldownTree from "./DrilldownTree";
 import HybridDrilldownTree from "./BubbleView";
+import ForceChart from "./ForceChart";
+import MultiBubbleView from "./MultiBubbleView";
 
 interface HierarchyNodeProps {
   level: number;
@@ -506,7 +508,9 @@ const [fullScreenChart, setFullScreenChart] = useState(false);
             </div>
             <div className="flex gap-4">
               <button
-                onClick={() => setAlignSingleRow('DataAsset')}
+                onClick={() => {setAlignSingleRow('DataAsset')
+                setFullScreenChart(true);
+                }}
                 className={`px-4 py-2 text-sm font-semibold rounded-lg transition-all ${alignSingleRow==='DataAsset'
                   ? 'bg-gradient-to-r from-indigo-600 to-blue-600 text-white shadow-md'
                   : 'bg-white text-gray-600 border border-gray-300 hover:bg-gray-50'
@@ -552,12 +556,22 @@ const [fullScreenChart, setFullScreenChart] = useState(false);
                   className="bg-transparent min-w-full"
                    alignLevelsSingleRow={true}
                 />}
-               {alignSingleRow==='DataAsset' && <HybridDrilldownTree
-                  title="Data Asset View"
-                  fullScreenChart={fullScreenChart}
-                  setFullScreenChart={setFullScreenChart}
-                  data={treeData as TreeNodeData}
-                />}
+               {alignSingleRow==='DataAsset' && 
+               
+              //  <HybridDrilldownTree
+              //     title="Data Asset View"
+              //     fullScreenChart={fullScreenChart}
+              //     setFullScreenChart={setFullScreenChart}
+              //     data={treeData as TreeNodeData}
+              //   />
+                
+                <MultiBubbleView
+                data={treeData as TreeNodeData}
+                fullScreenChart={fullScreenChart}
+                setFullScreenChart={setFullScreenChart}
+                />
+                
+                }
                 {/* <BubblePopHierarchy/> */}
 
               </div>
