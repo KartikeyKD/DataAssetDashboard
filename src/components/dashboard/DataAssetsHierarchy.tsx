@@ -333,6 +333,123 @@ export const DataAssetsHierarchy = () => {
   const [expandedNodes, setExpandedNodes] = useState<Set<string>>(new Set());
   const [alignSingleRow, setAlignSingleRow] = useState("InLine");
 const [fullScreenChart, setFullScreenChart] = useState(false);
+
+const dataAssetHierarchyValue = {
+  id: "root",
+  label: "Data Assets",
+  value: 100000,       // placeholder value
+  proportion: 100,
+  children: [
+    {
+      id: "l1-Airport",
+      label: "Airport",
+      value: 1000,
+      proportion: 100,
+      children: [
+        { id: "l2-Airport-Region", label: "Region", value: 500, proportion: 100, children: [] },
+        { id: "l2-Airport-Country", label: "Country", value: 500, proportion: 100, children: [] }
+      ]
+    },
+    {
+      id: "l1-Aircraft",
+      label: "Aircraft",
+      value: 1200,
+      proportion: 100,
+      children: [
+        { id: "l2-Aircraft-Aircraft Type", label: "Aircraft Type", value: 400, proportion: 100, children: [] },
+        { id: "l2-Aircraft-Seating Plan", label: "Seating Plan", value: 400, proportion: 100, children: [] },
+        { id: "l2-Aircraft-Registration", label: "Registration", value: 400, proportion: 100, children: [] }
+      ]
+    },
+    {
+      id: "l1-Customer",
+      label: "Customer",
+      value: 2000,
+      proportion: 100,
+      children: [
+        { id: "l2-Customer-Profile", label: "Profile", value: 300, proportion: 100, children: [] },
+        { id: "l2-Customer-Booking History", label: "Booking History", value: 300, proportion: 100, children: [] },
+        { id: "l2-Customer-Booking Behaviours", label: "Booking Behaviours", value: 300, proportion: 100, children: [] },
+        { id: "l2-Customer-Hotel Bookings", label: "Hotel Bookings", value: 200, proportion: 100, children: [] },
+        { id: "l2-Customer-Ancillary Preferences", label: "Ancillary Preferences", value: 200, proportion: 100, children: [] },
+        { id: "l2-Customer-Customer Experience", label: "Customer Experience", value: 200, proportion: 100, children: [] },
+        { id: "l2-Customer-Booking Channels", label: "Booking Channels", value: 200, proportion: 100, children: [] }
+      ]
+    },
+    {
+      id: "l1-Employee",
+      label: "Employee",
+      value: 1000,
+      proportion: 100,
+      children: [
+        { id: "l2-Employee-Profile", label: "Profile", value: 200, proportion: 100, children: [] },
+        { id: "l2-Employee-Headcount", label: "Headcount", value: 200, proportion: 100, children: [] },
+        { id: "l2-Employee-Attrition", label: "Attrition", value: 200, proportion: 100, children: [] },
+        { id: "l2-Employee-Diversity", label: "Diversity", value: 200, proportion: 100, children: [] },
+        { id: "l2-Employee-Span of Control", label: "Span of Control", value: 200, proportion: 100, children: [] }
+      ]
+    },
+    {
+      id: "l1-Cargo",
+      label: "Cargo",
+      value: 800,
+      proportion: 100,
+      children: [
+        { id: "l2-Cargo-Category", label: "Category", value: 200, proportion: 100, children: [] },
+        { id: "l2-Cargo-Freighter Tonnage/Volumes", label: "Freighter Tonnage/Volumes", value: 200, proportion: 100, children: [] },
+        { id: "l2-Cargo-Freighters", label: "Freighters", value: 200, proportion: 100, children: [] },
+        { id: "l2-Cargo-Cargo Agent Performances", label: "Cargo Agent Performances", value: 200, proportion: 100, children: [] }
+      ]
+    },
+    {
+      id: "l1-Crew",
+      label: "Crew",
+      value: 500,
+      proportion: 100,
+      children: [
+        { id: "l2-Crew-Roaster", label: "Roaster", value: 250, proportion: 100, children: [] },
+        { id: "l2-Crew-Block Hours", label: "Block Hours", value: 250, proportion: 100, children: [] }
+      ]
+    },
+    {
+      id: "l1-Bluechip",
+      label: "Bluechip",
+      value: 300,
+      proportion: 100,
+      children: []
+    },
+    {
+      id: "l1-Sales",
+      label: "Sales",
+      value: 1500,
+      proportion: 100,
+      children: [
+        { id: "l2-Sales-Revenue", label: "Revenue", value: 200, proportion: 100, children: [] },
+        { id: "l2-Sales-Routes", label: "Routes", value: 200, proportion: 100, children: [] },
+        { id: "l2-Sales-Product Class", label: "Product Class", value: 200, proportion: 100, children: [] },
+        { id: "l2-Sales-Connections", label: "Connections", value: 200, proportion: 100, children: [] },
+        { id: "l2-Sales-Cancellations", label: "Cancellations", value: 150, proportion: 100, children: [] },
+        { id: "l2-Sales-Channel", label: "Channel", value: 150, proportion: 100, children: [] },
+        { id: "l2-Sales-Baggage Details", label: "Baggage Details", value: 200, proportion: 100, children: [] },
+        { id: "l2-Sales-Sales Agent Performances", label: "Sales Agent Performances", value: 200, proportion: 100, children: [] }
+      ]
+    },
+    {
+      id: "l1-Flight",
+      label: "Flight",
+      value: 900,
+      proportion: 100,
+      children: [
+        { id: "l2-Flight-Schedules", label: "Schedules", value: 225, proportion: 100, children: [] },
+        { id: "l2-Flight-Sectors", label: "Sectors", value: 225, proportion: 100, children: [] },
+        { id: "l2-Flight-Codeshare", label: "Codeshare", value: 225, proportion: 100, children: [] },
+        { id: "l2-Flight-Network", label: "Network", value: 225, proportion: 100, children: [] }
+      ]
+    }
+  ]
+};
+
+
   const toggleNode = (nodeId: string) => {
     const newExpanded = new Set(expandedNodes);
     if (newExpanded.has(nodeId)) {
@@ -566,7 +683,7 @@ const [fullScreenChart, setFullScreenChart] = useState(false);
               //   />
                 
                 <MultiBubbleView
-                data={treeData as TreeNodeData}
+                data={dataAssetHierarchyValue as TreeNodeData}
                 fullScreenChart={fullScreenChart}
                 setFullScreenChart={setFullScreenChart}
                 />

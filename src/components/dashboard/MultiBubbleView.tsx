@@ -36,9 +36,10 @@ const AutoDrilldownForceGraph: React.FC<Props> = ({
   setFullScreenChart,
 }) => {
   const svgRef = useRef<SVGSVGElement | null>(null);
-  const [expandedIndex, setExpandedIndex] = useState(0);
+  const [expandedNodes, setExpandedNodes] = useState<string[]>([]);
+  const [chartReady, setChartReady] = useState(false);
 
-  // 🧠 Normalize root children (add placeholders if missing)
+  // ✅ Normalize Data Assets level
   const filteredRoot = React.useMemo(() => {
     if (!data || !data.children) return data;
 
@@ -63,168 +64,180 @@ const AutoDrilldownForceGraph: React.FC<Props> = ({
     return { ...data, children: normalizedChildren };
   }, [data]);
 
+  // 🧠 Render chart only when dialog is open
   useEffect(() => {
+    if (!fullScreenChart) return;
+    setTimeout(() => setChartReady(true), 100); // small delay to ensure dialog mounts
+  }, [fullScreenChart]);
+
+  useEffect(() => {
+    if (!chartReady) return;
     const width = window.innerWidth;
     const height = window.innerHeight;
+    const centerX = width / 2;
+    const centerY = height / 2;
 
     const svg = d3.select(svgRef.current);
     svg.selectAll("*").remove();
 
     const root = { id: filteredRoot.id, label: filteredRoot.label };
+    const level1 = filteredRoot.children || [];
 
-    const level1 =
-      filteredRoot.children?.map((c) => ({
-        id: c.id,
-        label: c.label,
-        parent: root.id,
-        children: c.children || [],
-        placeholder: c.placeholder,
-      })) || [];
+    const baseRadius = 100; // distance from root
+    const childRadius = 70; // distance from parent for L2 nodes
 
-    const activeNode = level1[expandedIndex % level1.length];
-    const level2 =
-      activeNode?.children?.map((c) => ({
-        id: c.id,
-        label: c.label,
-        parent: activeNode.id,
-        children: [],
-      })) || [];
+    const angleStep = (2 * Math.PI) / level1.length;
+    const level1Positions = level1.map((node, i) => {
+      const angle = i * angleStep;
+      return {
+        ...node,
+        x: centerX + baseRadius * Math.cos(angle),
+        y: centerY + baseRadius * Math.sin(angle),
+        angle,
+      };
+    });
 
-    const nodes: any[] = [root, ...level1, ...level2];
-    const links: any[] = [
-      ...level1.map((c) => ({ source: root.id, target: c.id })),
-      ...level2.map((c) => ({ source: activeNode.id, target: c.id })),
-    ];
+    // 🟢 Root node
+    svg
+      .append("circle")
+      .attr("cx", centerX)
+      .attr("cy", centerY)
+      .attr("r", 55)
+      .attr("fill", "#1e88e5");
 
-    // D3 Simulation
-    const simulation = d3
-      .forceSimulation(nodes)
-      .force(
-        "link",
-        d3
-          .forceLink(links)
-          .id((d: any) => d.id)
-          .distance((d: any) => (d.source.id === root.id ? 220 : 120))
-      )
-      .force("charge", d3.forceManyBody().strength(-600))
-      .force("center", d3.forceCenter(width / 2, height / 2))
-      .force("collision", d3.forceCollide(50));
-
-    // Links
-    const link = svg
-      .append("g")
-      .attr("stroke", "#aaa")
-      .attr("stroke-width", 1.5)
-      .selectAll("line")
-      .data(links)
-      .join("line");
-
-    // Nodes
-    const node = svg
-      .append("g")
-      .selectAll("circle")
-      .data(nodes)
-      .join("circle")
-      .attr("r", (d: any) =>
-        d.id === root.id ? 50 : level1.find((n) => n.id === d.id) ? 42 : 30
-      )
-      .attr("fill", (d: any) =>
-        d.id === root.id
-          ? "#1e88e5"
-          : d.placeholder
-          ? "#e0e0e0"
-          : level1.find((n) => n.id === d.id)
-          ? "#26a69a"
-          : "#ffb300"
-      )
-      .attr("stroke", (d: any) => (d.placeholder ? "#999" : "#fff"))
-      .attr("stroke-width", (d: any) => (d.placeholder ? 2 : 3))
-      .attr("stroke-dasharray", (d: any) => (d.placeholder ? "5,3" : ""))
-      .attr("cursor", "pointer");
-
-    // Labels
-    const label = svg
-      .append("g")
-      .selectAll("text")
-      .data(nodes)
-      .join("text")
-      .text((d: any) => d.label)
-      .attr("font-size", (d: any) =>
-        d.id === root.id ? 18 : level1.find((n) => n.id === d.id) ? 14 : 12
-      )
-      .attr("fill", (d: any) => (d.placeholder ? "#777" : "#222"))
+    svg
+      .append("text")
+      .attr("x", centerX)
+      .attr("y", centerY + 5)
       .attr("text-anchor", "middle")
-      .attr("dy", 5);
+      .attr("font-size", 16)
+      .attr("fill", "white")
+      .text(root.label);
 
-    // Tick updates
-    simulation.on("tick", () => {
-      link
-        .attr("x1", (d: any) => d.source.x)
-        .attr("y1", (d: any) => d.source.y)
-        .attr("x2", (d: any) => d.target.x)
-        .attr("y2", (d: any) => d.target.y);
+    // 🟡 L1 nodes circularly around root
+    const nodeGroup = svg
+      .append("g")
+      .selectAll("g")
+      .data(level1Positions)
+      .join("g")
+      .attr("transform", (d) => `translate(${d.x},${d.y})`);
 
-      node.attr("cx", (d: any) => d.x).attr("cy", (d: any) => d.y);
-      label.attr("x", (d: any) => d.x).attr("y", (d: any) => d.y);
-    });
+    nodeGroup
+      .append("circle")
+      .attr("r", 30)
+      .attr("fill", (d) => (d.placeholder ? "#e0e0e0" : "#26a69a"))
+      .attr("stroke", (d) => (d.placeholder ? "#999" : "#fff"))
+      .attr("stroke-width", (d) => (d.placeholder ? 2 : 3))
+      .attr("stroke-dasharray", (d) => (d.placeholder ? "5,3" : ""));
 
-    // ✨ Smooth outward movement for active L1 node
-    simulation.on("end", () => {
-      const active = nodes.find((n) => n.id === activeNode.id);
-      if (active && active.x && active.y) {
-        const cx = width / 2;
-        const cy = height / 2;
-        const dx = active.x - cx;
-        const dy = active.y - cy;
-        const len = Math.sqrt(dx * dx + dy * dy);
-        const factor = 1.3; // outward multiplier
+    nodeGroup
+      .append("text")
+      .attr("text-anchor", "middle")
+      .attr("dy", 5)
+      .attr("font-size", 13)
+      .attr("fill", (d) => (d.placeholder ? "#777" : "#222"))
+      .text((d) => d.label);
 
-        const newX = cx + dx * factor;
-        const newY = cy + dy * factor;
-
-        d3.select(svgRef.current)
-          .selectAll("circle")
-          .filter((d: any) => d.id === activeNode.id)
-          .transition()
-          .duration(1200)
-          .attr("cx", newX)
-          .attr("cy", newY)
-          .transition()
-          .duration(1200)
-          .attr("cx", active.x)
-          .attr("cy", active.y);
+    // 🔄 Sequential expansion
+    let currentIndex = 0;
+    const expandNext = () => {
+      if (currentIndex >= level1Positions.length) return;
+      const node = level1Positions[currentIndex];
+      if (expandedNodes.includes(node.id)) {
+        currentIndex++;
+        setTimeout(expandNext, 5000);
+        return;
       }
-    });
 
-    const interval = setInterval(() => {
-      setExpandedIndex((prev) => (prev + 1) % level1.length);
-    }, 5000);
+      setExpandedNodes((prev) => [...prev, node.id]);
 
-    return () => {
-      clearInterval(interval);
-      simulation.stop();
+      const nodeSel = svg
+        .selectAll("g")
+        .filter((d: any) => d?.id === node.id);
+
+      // Move the node outward a bit
+      const newX = centerX + (baseRadius + 220) * Math.cos(node.angle);
+      const newY = centerY + (baseRadius + 220) * Math.sin(node.angle);
+
+      nodeSel
+        .transition()
+        .duration(1000)
+        .attr("transform", `translate(${newX},${newY})`)
+        .on("end", () => {
+          const children = node.children || [];
+
+          if (children.length === 0) {
+            currentIndex++;
+            setTimeout(expandNext, 5000);
+            return;
+          }
+
+          // 🟠 Position L2 nodes around the *parent node’s new position*
+          const angleStep2 = (2 * Math.PI) / children.length;
+          const childPositions = children.map((child, j) => {
+            const angle = j * angleStep2;
+            return {
+              ...child,
+              x: newX + childRadius * Math.cos(angle),
+              y: newY + childRadius * Math.sin(angle),
+            };
+          });
+
+          // 🟣 Add child nodes
+          const group = svg.append("g").selectAll("g").data(childPositions).join("g");
+
+          group
+            .append("circle")
+.attr("r", 35)            .attr("fill", "#ffb300")
+            .attr("cx", (d) => newX)
+            .attr("cy", (d) => newY)
+            .attr("opacity", 0)
+            .transition()
+            .duration(800)
+            .attr("cx", (d) => d.x)
+            .attr("cy", (d) => d.y)
+            .attr("opacity", 1);
+
+          group
+            .append("text")
+            .attr("x", (d) => newX)
+            .attr("y", (d) => newY)
+            .attr("text-anchor", "middle")
+            .attr("font-size", 11)
+            .attr("fill", "#222")
+            .attr("opacity", 0)
+            .text((d) => d.label)
+            .transition()
+            .duration(800)
+            .attr("x", (d) => d.x)
+            .attr("y", (d) => d.y + 4)
+            .attr("opacity", 1);
+
+          currentIndex++;
+          setTimeout(expandNext, 5000);
+        });
     };
-  }, [expandedIndex, filteredRoot]);
+
+    setTimeout(expandNext, 2000);
+  }, [chartReady, filteredRoot]);
 
   const onClose = () => {
+    setChartReady(false);
     setFullScreenChart(false);
   };
 
   return (
     <Dialog open={fullScreenChart} onOpenChange={onClose}>
       <DialogContent className="min-w-[100%] h-svh">
-        <div className="flex flex-col justify-center items-start w-full h-full relative">
-          <div className="w-full h-full bg-white relative flex items-center">
-            <svg
-              ref={svgRef}
-              style={{
-                width: "100vw",
-                height: "100svh",
-                background: "#fafafa",
-                overflow: "hidden",
-              }}
-            />
-          </div>
+        <div className="flex flex-col justify-center items-center w-full h-full relative">
+          <svg
+            ref={svgRef}
+            style={{
+              width: "100vw",
+              height: "100svh",
+              background: "#fafafa",
+            }}
+          />
         </div>
       </DialogContent>
     </Dialog>
