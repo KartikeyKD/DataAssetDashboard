@@ -22,7 +22,6 @@ const REQUIRED_LEVEL1 = [
   "Crew",
   "Airport",
   "Sales",
-  "Revenue",
   "Customer",
   "Flight",
   "Aircraft",
