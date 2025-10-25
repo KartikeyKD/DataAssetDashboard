@@ -17,208 +17,374 @@ interface Props {
   setFullScreenChart: React.Dispatch<React.SetStateAction<boolean>>;
 }
 
-const REQUIRED_LEVEL1 = [
-  "Employee",
-  "Crew",
-  "Airport",
-  "Sales",
-  "Customer",
-  "Flight",
-  "Aircraft",
-  "Cargo",
-  "BlueChip",
-];
-
 const AutoDrilldownForceGraph: React.FC<Props> = ({
   data,
   fullScreenChart,
   setFullScreenChart,
 }) => {
   const svgRef = useRef<SVGSVGElement | null>(null);
-  const [expandedNodes, setExpandedNodes] = useState<string[]>([]);
   const [chartReady, setChartReady] = useState(false);
 
-  // ✅ Normalize Data Assets level
-  const filteredRoot = React.useMemo(() => {
-    if (!data || !data.children) return data;
-
-    const existingMap = new Map(
-      data.children.map((c) => [c.label.trim().toLowerCase(), c])
-    );
-
-    const normalizedChildren = REQUIRED_LEVEL1.map((name) => {
-      const match = existingMap.get(name.trim().toLowerCase());
-      return (
-        match || {
-          id: `placeholder-${name.toLowerCase().replace(/\s+/g, "-")}`,
-          label: name,
-          value: 0,
-          proportion: 0,
-          children: [],
-          placeholder: true,
-        }
-      );
-    });
-
-    return { ...data, children: normalizedChildren };
-  }, [data]);
-
-  // 🧠 Render chart only when dialog is open
   useEffect(() => {
     if (!fullScreenChart) return;
-    setTimeout(() => setChartReady(true), 100); // small delay to ensure dialog mounts
+    setTimeout(() => setChartReady(true), 200);
   }, [fullScreenChart]);
 
   useEffect(() => {
-    if (!chartReady) return;
-    const width = window.innerWidth;
-    const height = window.innerHeight;
-    const centerX = width / 2;
-    const centerY = height / 2;
-
+    if (!chartReady || !data) return;
+    
     const svg = d3.select(svgRef.current);
     svg.selectAll("*").remove();
 
-    const root = { id: filteredRoot.id, label: filteredRoot.label };
-    const level1 = filteredRoot.children || [];
+    const width = window.innerWidth;
+    const height = window.innerHeight;
+    const cx = width / 2;
+    const cy = height / 2;
 
-    const baseRadius = 100; // distance from root
-    const childRadius = 70; // distance from parent for L2 nodes
-
+    const level1 = data.children || [];
+    
+    const rootR = 90;
+    const l1R = 70;
+    const orbit = Math.min(width, height) * 0.35;
     const angleStep = (2 * Math.PI) / level1.length;
-    const level1Positions = level1.map((node, i) => {
-      const angle = i * angleStep;
-      return {
-        ...node,
-        x: centerX + baseRadius * Math.cos(angle),
-        y: centerY + baseRadius * Math.sin(angle),
-        angle,
-      };
-    });
 
-    // 🟢 Root node
-    svg
+    // Track which nodes have been expanded
+    const expandedNodes = new Set<string>();
+    let animationComplete = false;
+
+    // Calculate original positions
+    const level1Nodes = level1.map((n, i) => ({
+      ...n,
+      originalX: cx + orbit * Math.cos(i * angleStep - Math.PI / 2),
+      originalY: cy + orbit * Math.sin(i * angleStep - Math.PI / 2),
+      angle: i * angleStep - Math.PI / 2,
+      index: i,
+    }));
+
+    const mainGroup = svg.append("g").attr("class", "main-group");
+
+    // Root node (Data Assets)
+    const rootGroup = mainGroup.append("g").attr("class", "root-group");
+    
+    rootGroup
       .append("circle")
-      .attr("cx", centerX)
-      .attr("cy", centerY)
-      .attr("r", 55)
-      .attr("fill", "#1e88e5");
+      .attr("cx", cx)
+      .attr("cy", cy)
+      .attr("r", rootR)
+      .attr("fill", "#1976d2")
+      .attr("stroke", "#fff")
+      .attr("stroke-width", 3);
 
-    svg
+    rootGroup
       .append("text")
-      .attr("x", centerX)
-      .attr("y", centerY + 5)
+      .attr("x", cx)
+      .attr("y", cy + 5)
       .attr("text-anchor", "middle")
-      .attr("font-size", 16)
-      .attr("fill", "white")
-      .text(root.label);
+      .attr("font-size", 22)
+      .attr("font-weight", "bold")
+      .attr("fill", "#fff")
+      .text(data.label);
 
-    // 🟡 L1 nodes circularly around root
-    const nodeGroup = svg
+    // Level 1 nodes container
+    const l1NodesGroup = mainGroup
       .append("g")
-      .selectAll("g")
-      .data(level1Positions)
-      .join("g")
-      .attr("transform", (d) => `translate(${d.x},${d.y})`);
+      .attr("class", "level1-nodes");
 
-    nodeGroup
-      .append("circle")
-      .attr("r", 30)
-      .attr("fill", (d) => (d.placeholder ? "#e0e0e0" : "#26a69a"))
-      .attr("stroke", (d) => (d.placeholder ? "#999" : "#fff"))
-      .attr("stroke-width", (d) => (d.placeholder ? 2 : 3))
-      .attr("stroke-dasharray", (d) => (d.placeholder ? "5,3" : ""));
+    // Function to render/update Level 1 nodes with their expanded children
+    const renderLevel1Nodes = () => {
+      // Clear existing nodes
+      l1NodesGroup.selectAll("*").remove();
 
-    nodeGroup
-      .append("text")
-      .attr("text-anchor", "middle")
-      .attr("dy", 5)
-      .attr("font-size", 13)
-      .attr("fill", (d) => (d.placeholder ? "#777" : "#222"))
-      .text((d) => d.label);
+      level1Nodes.forEach((node) => {
+        const nodeGroup = l1NodesGroup
+          .append("g")
+          .attr("class", `node-${node.id}`)
+          .attr("transform", `translate(${node.originalX},${node.originalY})`);
 
-    // 🔄 Sequential expansion
+        // Main L1 circle
+        nodeGroup
+          .append("circle")
+          .attr("r", l1R * 1.5)
+          .attr("fill", "#26a69a")
+          .attr("stroke", "#fff")
+          .attr("stroke-width", 2);
+
+        nodeGroup
+          .append("text")
+          .attr("text-anchor", "middle")
+          .attr("dy", 5)
+          .attr("font-size", 22)
+          .attr("font-weight", "800")
+          .attr("fill", "#fff")
+          .text(node.label);
+
+        // If this node has been expanded, show its children
+        if (expandedNodes.has(node.id) && node.children && node.children.length > 0) {
+          const childOrbit = l1R * 1.5;
+          const childAngleStep = (2 * Math.PI) / node.children.length;
+
+          node.children.forEach((child, j) => {
+            const childX = childOrbit * Math.cos(j * childAngleStep - Math.PI / 2);
+            const childY = childOrbit * Math.sin(j * childAngleStep - Math.PI / 2);
+
+            const childGroup = nodeGroup.append("g")
+              .attr("class", "child-node");
+
+            childGroup
+              .append("circle")
+              .attr("cx", childX)
+              .attr("cy", childY)
+              .attr("r", 35)
+              .attr("fill", "#ffb300")
+              .attr("stroke", "#fff")
+              .attr("stroke-width", 1);
+
+            childGroup
+              .append("text")
+              .attr("x", childX)
+              .attr("y", childY + 3)
+              .attr("text-anchor", "middle")
+              .attr("font-size", 8)
+              .attr("font-weight", "500")
+              .attr("fill", "#222")
+              .text(child.label);
+          });
+        }
+
+        // Add hover effects only after animation is complete
+        if (animationComplete && expandedNodes.has(node.id)) {
+          nodeGroup
+            .style("cursor", "pointer")
+            .on("mouseover", function() {
+              d3.select(this)
+                .transition()
+                .duration(300)
+                .attr("z-index", 10000000)
+                .attr("transform", `translate(${node.originalX},${node.originalY}) scale(2)`);
+            })
+            .on("mouseout", function() {
+              d3.select(this)
+                .transition()
+                .duration(300)
+                .attr("transform", `translate(${node.originalX},${node.originalY}) scale(1)`);
+            });
+        }
+      });
+    };
+
+    // Initial render
+    renderLevel1Nodes();
+
     let currentIndex = 0;
-    const expandNext = () => {
-      if (currentIndex >= level1Positions.length) return;
-      const node = level1Positions[currentIndex];
-      if (expandedNodes.includes(node.id)) {
-        currentIndex++;
-        setTimeout(expandNext, 5000);
+
+    const animateNextNode = () => {
+      if (currentIndex >= level1Nodes.length) {
+        // All nodes have been animated, restore to full screen
+        console.log("All animations complete, restoring to full screen");
+        mainGroup
+          .transition()
+          .duration(1500)
+          .attr("transform", "translate(0, 0) scale(1)")
+          .on("end", () => {
+            console.log("Restored to full screen center");
+            animationComplete = true;
+            renderLevel1Nodes(); // Re-render with hover effects enabled
+          });
         return;
       }
 
-      setExpandedNodes((prev) => [...prev, node.id]);
+      const node = level1Nodes[currentIndex];
+      const children = node.children || [];
 
-      const nodeSel = svg
-        .selectAll("g")
-        .filter((d: any) => d?.id === node.id);
-
-      // Move the node outward a bit
-      const newX = centerX + (baseRadius + 220) * Math.cos(node.angle);
-      const newY = centerY + (baseRadius + 220) * Math.sin(node.angle);
-
-      nodeSel
+      // Step 1: Shrink entire main group to left
+      mainGroup
         .transition()
         .duration(1000)
-        .attr("transform", `translate(${newX},${newY})`)
-        .on("end", () => {
-          const children = node.children || [];
+        .attr("transform", `translate(${-width * 0.1}, 0) scale(0.5)`);
 
-          if (children.length === 0) {
-            currentIndex++;
-            setTimeout(expandNext, 5000);
-            return;
-          }
+      setTimeout(() => {
+        // Step 2: Create clone that travels from original position to center
+        const travelGroup = svg
+          .append("g")
+          .attr("class", `travel-${node.id}`);
 
-          // 🟠 Position L2 nodes around the *parent node’s new position*
-          const angleStep2 = (2 * Math.PI) / children.length;
-          const childPositions = children.map((child, j) => {
-            const angle = j * angleStep2;
-            return {
-              ...child,
-              x: newX + childRadius * Math.cos(angle),
-              y: newY + childRadius * Math.sin(angle),
-            };
-          });
+        // Start from the node's position in the shrunken main group
+        const startX = cx - width * 0.1 * 0.5 + (node.originalX - cx) * 0.5;
+        const startY = cy + (node.originalY - cy) * 0.5;
 
-          // 🟣 Add child nodes
-          const group = svg.append("g").selectAll("g").data(childPositions).join("g");
+        travelGroup
+          .append("circle")
+          .attr("cx", startX)
+          .attr("cy", startY)
+          .attr("r", l1R * 0.7)
+          .attr("fill", "#26a69a")
+          .attr("stroke", "#fff")
+          .attr("stroke-width", 2);
 
-          group
-            .append("circle")
-.attr("r", 35)            .attr("fill", "#ffb300")
-            .attr("cx", (d) => newX)
-            .attr("cy", (d) => newY)
-            .attr("opacity", 0)
-            .transition()
-            .duration(800)
-            .attr("cx", (d) => d.x)
-            .attr("cy", (d) => d.y)
-            .attr("opacity", 1);
+        const travelText = travelGroup
+          .append("text")
+          .attr("x", startX)
+          .attr("y", startY + 3)
+          .attr("text-anchor", "middle")
+          .attr("font-size", 16)
+          .attr("font-weight", "500")
+          .attr("fill", "#fff")
+          .text(node.label);
 
-          group
-            .append("text")
-            .attr("x", (d) => newX)
-            .attr("y", (d) => newY)
-            .attr("text-anchor", "middle")
-            .attr("font-size", 11)
-            .attr("fill", "#222")
-            .attr("opacity", 0)
-            .text((d) => d.label)
-            .transition()
-            .duration(800)
-            .attr("x", (d) => d.x)
-            .attr("y", (d) => d.y + 4)
-            .attr("opacity", 1);
+        // Animate to center and expand
+        travelGroup
+          .select("circle")
+          .transition()
+          .duration(1000)
+          .attr("cx", cx)
+          .attr("cy", cy)
+          .attr("r", 100);
 
-          currentIndex++;
-          setTimeout(expandNext, 5000);
-        });
+        travelText
+          .transition()
+          .duration(1000)
+          .attr("x", cx)
+          .attr("y", cy + 5)
+          .attr("font-size", 24);
+
+        // Step 3: Expand children after center node is in place
+        if (children.length > 0) {
+          setTimeout(() => {
+            const childOrbit = Math.min(width, height) * 0.25;
+            const childAngleStep = (2 * Math.PI) / children.length;
+
+            const childNodes = children.map((c, j) => ({
+              ...c,
+              targetX: cx + childOrbit * Math.cos(j * childAngleStep - Math.PI / 2),
+              targetY: cy + childOrbit * Math.sin(j * childAngleStep - Math.PI / 2),
+            }));
+
+            const childGroup = travelGroup
+              .append("g")
+              .attr("class", "children-group")
+              .selectAll("g")
+              .data(childNodes)
+              .join("g");
+
+            childGroup
+              .append("circle")
+              .attr("cx", cx)
+              .attr("cy", cy)
+              .attr("r", 0)
+              .attr("fill", "#ffb300")
+              .attr("stroke", "#fff")
+              .attr("stroke-width", 2)
+              .transition()
+              .duration(1000)
+              .attr("r", 135)
+              .attr("cx", (d) => d.targetX)
+              .attr("cy", (d) => d.targetY);
+
+            childGroup
+              .append("text")
+              .attr("x", cx)
+              .attr("y", cy)
+              .attr("text-anchor", "middle")
+              .attr("dy", 5)
+              .attr("font-size", 20)
+              .attr("font-weight", "900")
+              .attr("fill", "#222")
+              .attr("opacity", 0)
+              .text((d) => d.label)
+              .transition()
+              .duration(1000)
+              .attr("opacity", 1)
+              .attr("x", (d) => d.targetX)
+              .attr("y", (d) => d.targetY + 5);
+
+            // Mark this node as expanded
+            expandedNodes.add(node.id);
+            
+            // Update the left side chart to show expanded state
+            renderLevel1Nodes();
+
+            setTimeout(() => {
+              shrinkAndReturn(travelGroup, node, startX, startY);
+            }, 5000);
+          }, 1000);
+        } else {
+          setTimeout(() => {
+            shrinkAndReturn(travelGroup, node, startX, startY);
+          }, 5000);
+        }
+      }, 1000);
     };
 
-    setTimeout(expandNext, 2000);
-  }, [chartReady, filteredRoot]);
+    const shrinkAndReturn = (
+      travelGroup: d3.Selection<SVGGElement, unknown, null, undefined>,
+      node: typeof level1Nodes[0],
+      startX: number,
+      startY: number
+    ) => {
+      // Collapse children first
+      travelGroup
+        .selectAll(".children-group circle")
+        .transition()
+        .duration(800)
+        .attr("cx", cx)
+        .attr("cy", cy)
+        .attr("r", 0);
+
+      travelGroup
+        .selectAll(".children-group text")
+        .transition()
+        .duration(800)
+        .attr("opacity", 0)
+        .attr("x", cx)
+        .attr("y", cy);
+
+      // Then shrink and move back to original position
+      setTimeout(() => {
+        travelGroup
+          .select("circle")
+          .transition()
+          .duration(1000)
+          .attr("cx", startX)
+          .attr("cy", startY)
+          .attr("r", l1R * 0.5);
+
+        travelGroup
+          .select("text")
+          .transition()
+          .duration(1000)
+          .attr("x", startX)
+          .attr("y", startY + 3)
+          .attr("font-size", 8)
+          .on("end", () => {
+            // Remove travel group
+            travelGroup.remove();
+
+            // Check if this is the last node
+            if (currentIndex === level1Nodes.length - 1) {
+              // Last node completed, restore main group to full screen
+              mainGroup
+                .transition()
+                .duration(1500)
+                .attr("transform", "translate(0, 0) scale(1)")
+                .on("end", () => {
+                  console.log("Animation sequence complete - back to full screen");
+                  animationComplete = true;
+                  renderLevel1Nodes(); // Re-render with hover effects
+                });
+            } else {
+              // Not the last node, continue to next
+              currentIndex++;
+              setTimeout(animateNextNode, 500);
+            }
+          });
+      }, 800);
+    };
+
+    // Start animation sequence
+    setTimeout(() => {
+      animateNextNode();
+    }, 5000);
+  }, [chartReady, data]);
 
   const onClose = () => {
     setChartReady(false);
@@ -228,7 +394,7 @@ const AutoDrilldownForceGraph: React.FC<Props> = ({
   return (
     <Dialog open={fullScreenChart} onOpenChange={onClose}>
       <DialogContent className="min-w-[100%] h-svh">
-        <div className="flex flex-col justify-center items-center w-full h-full relative">
+        <div className="flex justify-center items-center w-full h-full relative">
           <svg
             ref={svgRef}
             style={{
