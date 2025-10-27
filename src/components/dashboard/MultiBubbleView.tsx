@@ -32,7 +32,7 @@ const AutoDrilldownForceGraph: React.FC<Props> = ({
 
   useEffect(() => {
     if (!chartReady || !data) return;
-    
+
     const svg = d3.select(svgRef.current);
     svg.selectAll("*").remove();
 
@@ -41,18 +41,19 @@ const AutoDrilldownForceGraph: React.FC<Props> = ({
     const cx = width / 2;
     const cy = height / 2;
 
-    const level1 = data.children || [];
-    
-    const rootR = 90;
-    const l1R = 70;
-    const orbit = Math.min(width, height) * 0.35;
-    const angleStep = (2 * Math.PI) / level1.length;
+    // 🔹 Responsive scaling factors
+    const scaleFactor = Math.min(width, height) / 1200; // 1.0 at 1200px, scales down on smaller screens
 
-    // Track which nodes have been expanded
+    const rootR = 90 * scaleFactor;
+    const l1R = 70 * scaleFactor;
+    const childR = 50*scaleFactor;
+    const orbit = Math.min(width, height) * 0.35 * scaleFactor * 1.65
+    const angleStep = (2 * Math.PI) / (data.children?.length || 1);
+
+    const level1 = data.children || [];
     const expandedNodes = new Set<string>();
     let animationComplete = false;
 
-    // Calculate original positions
     const level1Nodes = level1.map((n, i) => ({
       ...n,
       originalX: cx + orbit * Math.cos(i * angleStep - Math.PI / 2),
@@ -63,9 +64,9 @@ const AutoDrilldownForceGraph: React.FC<Props> = ({
 
     const mainGroup = svg.append("g").attr("class", "main-group");
 
-    // Root node (Data Assets)
+    // 🔹 Root node
     const rootGroup = mainGroup.append("g").attr("class", "root-group");
-    
+
     rootGroup
       .append("circle")
       .attr("cx", cx)
@@ -73,26 +74,21 @@ const AutoDrilldownForceGraph: React.FC<Props> = ({
       .attr("r", rootR)
       .attr("fill", "#1976d2")
       .attr("stroke", "#fff")
-      .attr("stroke-width", 3);
+      .attr("stroke-width", 3 * scaleFactor);
 
     rootGroup
       .append("text")
       .attr("x", cx)
-      .attr("y", cy + 5)
+      .attr("y", cy + 5 * scaleFactor)
       .attr("text-anchor", "middle")
-      .attr("font-size", 22)
+      .attr("font-size", 22 * scaleFactor)
       .attr("font-weight", "bold")
       .attr("fill", "#fff")
       .text(data.label);
 
-    // Level 1 nodes container
-    const l1NodesGroup = mainGroup
-      .append("g")
-      .attr("class", "level1-nodes");
+    const l1NodesGroup = mainGroup.append("g").attr("class", "level1-nodes");
 
-    // Function to render/update Level 1 nodes with their expanded children
     const renderLevel1Nodes = () => {
-      // Clear existing nodes
       l1NodesGroup.selectAll("*").remove();
 
       level1Nodes.forEach((node) => {
@@ -101,24 +97,22 @@ const AutoDrilldownForceGraph: React.FC<Props> = ({
           .attr("class", `node-${node.id}`)
           .attr("transform", `translate(${node.originalX},${node.originalY})`);
 
-        // Main L1 circle
         nodeGroup
           .append("circle")
-          .attr("r", l1R * 1.5)
+          .attr("r", l1R * 1)
           .attr("fill", "#26a69a")
           .attr("stroke", "#fff")
-          .attr("stroke-width", 2);
+          .attr("stroke-width", 2 * scaleFactor);
 
         nodeGroup
           .append("text")
           .attr("text-anchor", "middle")
-          .attr("dy", 5)
-          .attr("font-size", 22)
+          .attr("dy", 5 * scaleFactor)
+          .attr("font-size", 22 * scaleFactor)
           .attr("font-weight", "800")
           .attr("fill", "#fff")
           .text(node.label);
 
-        // If this node has been expanded, show its children
         if (expandedNodes.has(node.id) && node.children && node.children.length > 0) {
           const childOrbit = l1R * 1.5;
           const childAngleStep = (2 * Math.PI) / node.children.length;
@@ -127,68 +121,68 @@ const AutoDrilldownForceGraph: React.FC<Props> = ({
             const childX = childOrbit * Math.cos(j * childAngleStep - Math.PI / 2);
             const childY = childOrbit * Math.sin(j * childAngleStep - Math.PI / 2);
 
-            const childGroup = nodeGroup.append("g")
-              .attr("class", "child-node");
+            const childGroup = nodeGroup.append("g").attr("class", "child-node");
 
             childGroup
               .append("circle")
               .attr("cx", childX)
               .attr("cy", childY)
-              .attr("r", 35)
+              .attr("r", childR)
               .attr("fill", "#ffb300")
               .attr("stroke", "#fff")
-              .attr("stroke-width", 1);
+              .attr("stroke-width", 1.5 * scaleFactor);
 
             childGroup
               .append("text")
               .attr("x", childX)
-              .attr("y", childY + 3)
+              .attr("y", childY + 3 * scaleFactor)
               .attr("text-anchor", "middle")
-              .attr("font-size", 8)
+              .attr("font-size", 10 * scaleFactor)
               .attr("font-weight", "500")
               .attr("fill", "#222")
               .text(child.label);
           });
         }
 
-        // Add hover effects only after animation is complete
         if (animationComplete && expandedNodes.has(node.id)) {
           nodeGroup
             .style("cursor", "pointer")
-            .on("mouseover", function() {
+            .on("mouseover", function () {
+              d3.select(this).raise();
               d3.select(this)
                 .transition()
                 .duration(300)
-                .attr("z-index", 10000000)
-                .attr("transform", `translate(${node.originalX},${node.originalY}) scale(2)`);
+                .attr(
+                  "transform",
+                  `translate(${node.originalX},${node.originalY}) scale(1.8)`
+                );
             })
-            .on("mouseout", function() {
+            .on("mouseout", function () {
               d3.select(this)
                 .transition()
                 .duration(300)
-                .attr("transform", `translate(${node.originalX},${node.originalY}) scale(1)`);
+                .attr(
+                  "transform",
+                  `translate(${node.originalX},${node.originalY}) scale(1)`
+                );
             });
         }
       });
     };
 
-    // Initial render
     renderLevel1Nodes();
 
     let currentIndex = 0;
 
     const animateNextNode = () => {
       if (currentIndex >= level1Nodes.length) {
-        // All nodes have been animated, restore to full screen
-        console.log("All animations complete, restoring to full screen");
         mainGroup
           .transition()
           .duration(1500)
           .attr("transform", "translate(0, 0) scale(1)")
           .on("end", () => {
-            console.log("Restored to full screen center");
             animationComplete = true;
-            renderLevel1Nodes(); // Re-render with hover effects enabled
+            renderLevel1Nodes();
           });
         return;
       }
@@ -196,19 +190,14 @@ const AutoDrilldownForceGraph: React.FC<Props> = ({
       const node = level1Nodes[currentIndex];
       const children = node.children || [];
 
-      // Step 1: Shrink entire main group to left
       mainGroup
         .transition()
         .duration(1000)
         .attr("transform", `translate(${-width * 0.1}, 0) scale(0.5)`);
 
       setTimeout(() => {
-        // Step 2: Create clone that travels from original position to center
-        const travelGroup = svg
-          .append("g")
-          .attr("class", `travel-${node.id}`);
+        const travelGroup = svg.append("g").attr("class", `travel-${node.id}`);
 
-        // Start from the node's position in the shrunken main group
         const startX = cx - width * 0.1 * 0.5 + (node.originalX - cx) * 0.5;
         const startY = cy + (node.originalY - cy) * 0.5;
 
@@ -216,41 +205,39 @@ const AutoDrilldownForceGraph: React.FC<Props> = ({
           .append("circle")
           .attr("cx", startX)
           .attr("cy", startY)
-          .attr("r", l1R * 0.7)
+          .attr("r", l1R * 5)
           .attr("fill", "#26a69a")
           .attr("stroke", "#fff")
-          .attr("stroke-width", 2);
+          .attr("stroke-width", 2 * scaleFactor);
 
         const travelText = travelGroup
           .append("text")
           .attr("x", startX)
-          .attr("y", startY + 3)
+          .attr("y", startY + 3 * scaleFactor)
           .attr("text-anchor", "middle")
-          .attr("font-size", 16)
+          .attr("font-size", 16 * scaleFactor)
           .attr("font-weight", "500")
           .attr("fill", "#fff")
           .text(node.label);
 
-        // Animate to center and expand
         travelGroup
           .select("circle")
           .transition()
           .duration(1000)
           .attr("cx", cx)
           .attr("cy", cy)
-          .attr("r", 100);
+          .attr("r", 100 * scaleFactor);
 
         travelText
           .transition()
           .duration(1000)
           .attr("x", cx)
-          .attr("y", cy + 5)
-          .attr("font-size", 24);
+          .attr("y", cy + 5 * scaleFactor)
+          .attr("font-size", 24 * scaleFactor);
 
-        // Step 3: Expand children after center node is in place
         if (children.length > 0) {
           setTimeout(() => {
-            const childOrbit = Math.min(width, height) * 0.25;
+            const childOrbit = Math.min(width, height) * 0.35 * scaleFactor;
             const childAngleStep = (2 * Math.PI) / children.length;
 
             const childNodes = children.map((c, j) => ({
@@ -270,13 +257,12 @@ const AutoDrilldownForceGraph: React.FC<Props> = ({
               .append("circle")
               .attr("cx", cx)
               .attr("cy", cy)
-              .attr("r", 0)
               .attr("fill", "#ffb300")
               .attr("stroke", "#fff")
-              .attr("stroke-width", 2)
+              .attr("stroke-width", 2 * scaleFactor)
               .transition()
               .duration(1000)
-              .attr("r", 135)
+              .attr("r", 130 * scaleFactor)
               .attr("cx", (d) => d.targetX)
               .attr("cy", (d) => d.targetY);
 
@@ -285,8 +271,8 @@ const AutoDrilldownForceGraph: React.FC<Props> = ({
               .attr("x", cx)
               .attr("y", cy)
               .attr("text-anchor", "middle")
-              .attr("dy", 5)
-              .attr("font-size", 20)
+              .attr("dy", 5 * scaleFactor)
+              .attr("font-size", 20 * scaleFactor)
               .attr("font-weight", "900")
               .attr("fill", "#222")
               .attr("opacity", 0)
@@ -295,12 +281,9 @@ const AutoDrilldownForceGraph: React.FC<Props> = ({
               .duration(1000)
               .attr("opacity", 1)
               .attr("x", (d) => d.targetX)
-              .attr("y", (d) => d.targetY + 5);
+              .attr("y", (d) => d.targetY + 5 * scaleFactor);
 
-            // Mark this node as expanded
             expandedNodes.add(node.id);
-            
-            // Update the left side chart to show expanded state
             renderLevel1Nodes();
 
             setTimeout(() => {
@@ -321,7 +304,6 @@ const AutoDrilldownForceGraph: React.FC<Props> = ({
       startX: number,
       startY: number
     ) => {
-      // Collapse children first
       travelGroup
         .selectAll(".children-group circle")
         .transition()
@@ -338,7 +320,6 @@ const AutoDrilldownForceGraph: React.FC<Props> = ({
         .attr("x", cx)
         .attr("y", cy);
 
-      // Then shrink and move back to original position
       setTimeout(() => {
         travelGroup
           .select("circle")
@@ -353,26 +334,21 @@ const AutoDrilldownForceGraph: React.FC<Props> = ({
           .transition()
           .duration(1000)
           .attr("x", startX)
-          .attr("y", startY + 3)
-          .attr("font-size", 8)
+          .attr("y", startY + 3 * scaleFactor)
+          .attr("font-size", 8 * scaleFactor)
           .on("end", () => {
-            // Remove travel group
             travelGroup.remove();
 
-            // Check if this is the last node
             if (currentIndex === level1Nodes.length - 1) {
-              // Last node completed, restore main group to full screen
               mainGroup
                 .transition()
                 .duration(1500)
                 .attr("transform", "translate(0, 0) scale(1)")
                 .on("end", () => {
-                  console.log("Animation sequence complete - back to full screen");
                   animationComplete = true;
-                  renderLevel1Nodes(); // Re-render with hover effects
+                  renderLevel1Nodes();
                 });
             } else {
-              // Not the last node, continue to next
               currentIndex++;
               setTimeout(animateNextNode, 500);
             }
@@ -380,10 +356,18 @@ const AutoDrilldownForceGraph: React.FC<Props> = ({
       }, 800);
     };
 
-    // Start animation sequence
     setTimeout(() => {
       animateNextNode();
     }, 5000);
+
+    // 🔹 Redraw on window resize
+    const handleResize = () => {
+      svg.selectAll("*").remove();
+      setChartReady(false);
+      setTimeout(() => setChartReady(true), 100);
+    };
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
   }, [chartReady, data]);
 
   const onClose = () => {
