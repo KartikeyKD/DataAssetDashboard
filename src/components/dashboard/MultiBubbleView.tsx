@@ -18,15 +18,15 @@ interface Props {
 }
 
 const REQUIRED_LEVEL1 = [
-  "Employee",
-  "Crew",
-  "Airport",
-  "Sales",
-  "Customer",
-  "Flight",
   "Aircraft",
-  "Cargo",
+  "Airport",
   "BlueChip",
+  "Cargo",
+  "Crew",
+  "Customer",
+  "Employee",
+  "Flight",
+  "Sales",
 ];
 
 const AutoDrilldownForceGraph: React.FC<Props> = ({
@@ -98,7 +98,7 @@ const AutoDrilldownForceGraph: React.FC<Props> = ({
 
     // 🟢 Root node
     svg
-      .append("Circle")
+      .append("circle")
       .attr("cx", centerX)
       .attr("cy", centerY)
       .attr("r", 60)
@@ -176,8 +176,8 @@ const AutoDrilldownForceGraph: React.FC<Props> = ({
           // 🟠 Position L2 nodes around the *parent node’s new position*
           //const angleStep2 = (2 * Math.PI) / children.length;
 
-          const arcStart = node.angle - Math.PI / 6; 
-          const arcEnd = node.angle + Math.PI / 6;
+          const arcStart = node.angle - Math.PI / 7; 
+          const arcEnd = node.angle + Math.PI / 7;
           const angleStep2 = (arcEnd - arcStart); // / children.length;
 
           const childPositions = children.map((child, j) => {

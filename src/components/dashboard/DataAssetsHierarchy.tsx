@@ -362,6 +362,35 @@ const dataAssetHierarchyValue = {
       ]
     },
     {
+      id: "l1-Bluechip",
+      label: "Bluechip",
+      value: 300,
+      proportion: 100,
+      children: []
+    },
+    {
+      id: "l1-Cargo",
+      label: "Cargo",
+      value: 800,
+      proportion: 100,
+      children: [
+        { id: "l2-Cargo-Category", label: "Category", value: 200, proportion: 100, children: [] },
+        { id: "l2-Cargo-Freighter Tonnage/Volumes", label: "Freighter Tonnage/Volumes", value: 200, proportion: 100, children: [] },
+        { id: "l2-Cargo-Freighters", label: "Freighters", value: 200, proportion: 100, children: [] },
+        { id: "l2-Cargo-Cargo Agent Performances", label: "Cargo Agent Performances", value: 200, proportion: 100, children: [] }
+      ]
+    },
+    {
+      id: "l1-Crew",
+      label: "Crew",
+      value: 500,
+      proportion: 100,
+      children: [
+        { id: "l2-Crew-Roaster", label: "Roaster", value: 250, proportion: 100, children: [] },
+        { id: "l2-Crew-Block Hours", label: "Block Hours", value: 250, proportion: 100, children: [] }
+      ]
+    },
+    {
       id: "l1-Customer",
       label: "Customer",
       value: 2000,
@@ -390,33 +419,16 @@ const dataAssetHierarchyValue = {
       ]
     },
     {
-      id: "l1-Cargo",
-      label: "Cargo",
-      value: 800,
+      id: "l1-Flight",
+      label: "Flight",
+      value: 900,
       proportion: 100,
       children: [
-        { id: "l2-Cargo-Category", label: "Category", value: 200, proportion: 100, children: [] },
-        { id: "l2-Cargo-Freighter Tonnage/Volumes", label: "Freighter Tonnage/Volumes", value: 200, proportion: 100, children: [] },
-        { id: "l2-Cargo-Freighters", label: "Freighters", value: 200, proportion: 100, children: [] },
-        { id: "l2-Cargo-Cargo Agent Performances", label: "Cargo Agent Performances", value: 200, proportion: 100, children: [] }
+        { id: "l2-Flight-Schedules", label: "Schedules", value: 225, proportion: 100, children: [] },
+        { id: "l2-Flight-Sectors", label: "Sectors", value: 225, proportion: 100, children: [] },
+        { id: "l2-Flight-Codeshare", label: "Codeshare", value: 225, proportion: 100, children: [] },
+        { id: "l2-Flight-Network", label: "Network", value: 225, proportion: 100, children: [] }
       ]
-    },
-    {
-      id: "l1-Crew",
-      label: "Crew",
-      value: 500,
-      proportion: 100,
-      children: [
-        { id: "l2-Crew-Roaster", label: "Roaster", value: 250, proportion: 100, children: [] },
-        { id: "l2-Crew-Block Hours", label: "Block Hours", value: 250, proportion: 100, children: [] }
-      ]
-    },
-    {
-      id: "l1-Bluechip",
-      label: "Bluechip",
-      value: 300,
-      proportion: 100,
-      children: []
     },
     {
       id: "l1-Sales",
@@ -432,18 +444,6 @@ const dataAssetHierarchyValue = {
         { id: "l2-Sales-Channel", label: "Channel", value: 150, proportion: 100, children: [] },
         { id: "l2-Sales-Baggage Details", label: "Baggage Details", value: 200, proportion: 100, children: [] },
         { id: "l2-Sales-Sales Agent Performances", label: "Sales Agent Performances", value: 200, proportion: 100, children: [] }
-      ]
-    },
-    {
-      id: "l1-Flight",
-      label: "Flight",
-      value: 900,
-      proportion: 100,
-      children: [
-        { id: "l2-Flight-Schedules", label: "Schedules", value: 225, proportion: 100, children: [] },
-        { id: "l2-Flight-Sectors", label: "Sectors", value: 225, proportion: 100, children: [] },
-        { id: "l2-Flight-Codeshare", label: "Codeshare", value: 225, proportion: 100, children: [] },
-        { id: "l2-Flight-Network", label: "Network", value: 225, proportion: 100, children: [] }
       ]
     }
   ]
