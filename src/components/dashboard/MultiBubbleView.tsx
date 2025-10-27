@@ -66,7 +66,7 @@ const AutoDrilldownForceGraph: React.FC<Props> = ({
   // 🧠 Render chart only when dialog is open
   useEffect(() => {
     if (!fullScreenChart) return;
-    setTimeout(() => setChartReady(true), 100); // small delay to ensure dialog mounts
+    setTimeout(() => setChartReady(true), 50); // small delay to ensure dialog mounts
   }, [fullScreenChart]);
 
   useEffect(() => {
@@ -82,8 +82,8 @@ const AutoDrilldownForceGraph: React.FC<Props> = ({
     const root = { id: filteredRoot.id, label: filteredRoot.label };
     const level1 = filteredRoot.children || [];
 
-    const baseRadius = 100; // distance from root
-    const childRadius = 70; // distance from parent for L2 nodes
+    const baseRadius = 160; // distance from root
+    const childRadius = 100 ; // distance from parent for L2 nodes
 
     const angleStep = (2 * Math.PI) / level1.length;
     const level1Positions = level1.map((node, i) => {
@@ -98,19 +98,20 @@ const AutoDrilldownForceGraph: React.FC<Props> = ({
 
     // 🟢 Root node
     svg
-      .append("circle")
+      .append("Circle")
       .attr("cx", centerX)
       .attr("cy", centerY)
-      .attr("r", 55)
-      .attr("fill", "#1e88e5");
+      .attr("r", 60)
+      .attr("fill", "#dde2e5ff");
 
     svg
       .append("text")
       .attr("x", centerX)
       .attr("y", centerY + 5)
       .attr("text-anchor", "middle")
-      .attr("font-size", 16)
-      .attr("fill", "white")
+      .attr("font-size", 20)
+      .attr("font-weight", "bold")
+      .attr("fill", "Black")
       .text(root.label);
 
     // 🟡 L1 nodes circularly around root
@@ -123,9 +124,9 @@ const AutoDrilldownForceGraph: React.FC<Props> = ({
 
     nodeGroup
       .append("circle")
-      .attr("r", 30)
-      .attr("fill", (d) => (d.placeholder ? "#e0e0e0" : "#26a69a"))
-      .attr("stroke", (d) => (d.placeholder ? "#999" : "#fff"))
+      .attr("r", 55)
+      .attr("fill", (d) => (d.placeholder ? "#e0e0e0" : "#5483d0ff"))
+      .attr("stroke", (d) => (d.placeholder ? "#999" : "#b8a8a8ff"))
       .attr("stroke-width", (d) => (d.placeholder ? 2 : 3))
       .attr("stroke-dasharray", (d) => (d.placeholder ? "5,3" : ""));
 
@@ -133,7 +134,8 @@ const AutoDrilldownForceGraph: React.FC<Props> = ({
       .append("text")
       .attr("text-anchor", "middle")
       .attr("dy", 5)
-      .attr("font-size", 13)
+      .attr("font-size", 15)
+      .attr("font-weight", "bold")
       .attr("fill", (d) => (d.placeholder ? "#777" : "#222"))
       .text((d) => d.label);
 
@@ -172,22 +174,36 @@ const AutoDrilldownForceGraph: React.FC<Props> = ({
           }
 
           // 🟠 Position L2 nodes around the *parent node’s new position*
-          const angleStep2 = (2 * Math.PI) / children.length;
+          //const angleStep2 = (2 * Math.PI) / children.length;
+
+          const arcStart = node.angle - Math.PI / 6; 
+          const arcEnd = node.angle + Math.PI / 6;
+          const angleStep2 = (arcEnd - arcStart); // / children.length;
+
           const childPositions = children.map((child, j) => {
-            const angle = j * angleStep2;
+            const angle = arcStart + j * angleStep2;
             return {
               ...child,
               x: newX + childRadius * Math.cos(angle),
               y: newY + childRadius * Math.sin(angle),
             };
           });
+                    
+         /* const childPositions = children.map((child, j) => {
+            const angle = j * angleStep2;
+            return {
+              ...child,
+              x: newX + childRadius * Math.cos(angle),
+              y: newY + childRadius * Math.sin(angle),
+            };
+          });*/
 
           // 🟣 Add child nodes
           const group = svg.append("g").selectAll("g").data(childPositions).join("g");
 
           group
             .append("circle")
-.attr("r", 35)            .attr("fill", "#ffb300")
+.attr("r", 40)            .attr("fill", "#c67863b0")
             .attr("cx", (d) => newX)
             .attr("cy", (d) => newY)
             .attr("opacity", 0)
@@ -197,7 +213,51 @@ const AutoDrilldownForceGraph: React.FC<Props> = ({
             .attr("cy", (d) => d.y)
             .attr("opacity", 1);
 
-          group
+
+            group.each(function (d) {
+              const words = d.label.split(/\s+/); // split label into words
+              const maxLineLength = 10; // max characters per line (tweak as needed)
+
+              // Build lines manually by combining words
+              const lines: string[] = [];
+              let currentLine = "";
+
+              words.forEach((word) => {
+                if ((currentLine + " " + word).trim().length <= maxLineLength) {
+                  currentLine += " " + word;
+                } else {
+                  lines.push(currentLine.trim());
+                  currentLine = word;
+                }
+              });
+              if (currentLine) lines.push(currentLine.trim());
+
+              // Append a <text> with multiple <tspan> elements
+              const text = d3
+                .select(this)
+                .append("text")
+                .attr("text-anchor", "middle")
+                .attr("font-size", 11)
+                .attr("fill", "#222")
+                .attr("font-weight", "bold")
+                .attr("opacity", 0);
+
+              lines.forEach((line, i) => {
+                text
+                  .append("tspan")
+                  .text(line)
+                  .attr("x", d.x)
+                  .attr("y", d.y + i * 13 - ((lines.length - 1) * 13) / 2); // center vertically
+              });
+
+              // Animate opacity after appending
+              text
+                .transition()
+                .duration(800)
+                .attr("opacity", 1);
+            });
+
+        /*   group
             .append("text")
             .attr("x", (d) => newX)
             .attr("y", (d) => newY)
@@ -210,7 +270,7 @@ const AutoDrilldownForceGraph: React.FC<Props> = ({
             .duration(800)
             .attr("x", (d) => d.x)
             .attr("y", (d) => d.y + 4)
-            .attr("opacity", 1);
+            .attr("opacity", 1); */
 
           currentIndex++;
           setTimeout(expandNext, 5000);
@@ -227,7 +287,7 @@ const AutoDrilldownForceGraph: React.FC<Props> = ({
 
   return (
     <Dialog open={fullScreenChart} onOpenChange={onClose}>
-      <DialogContent className="min-w-[100%] h-svh">
+      <DialogContent className="w-screen h-screen p-0 m-0 max-w-none overflow-hidden">
         <div className="flex flex-col justify-center items-center w-full h-full relative">
           <svg
             ref={svgRef}
