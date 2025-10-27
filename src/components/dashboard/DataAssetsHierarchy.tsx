@@ -396,7 +396,7 @@ const dataAssetHierarchyValue = {
       proportion: 100,
       children: [
         { id: "l2-Cargo-Category", label: "Category", value: 200, proportion: 100, children: [] },
-        { id: "l2-Cargo-Freighter Tonnage/Volumes", label: "Freighter Tonnage/Volumes", value: 200, proportion: 100, children: [] },
+        { id: "l2-Cargo-Freighter Tonnage/Volumes", label: "Freighter Tonnage /Volumes", value: 200, proportion: 100, children: [] },
         { id: "l2-Cargo-Freighters", label: "Freighters", value: 200, proportion: 100, children: [] },
         { id: "l2-Cargo-Cargo Agent Performances", label: "Cargo Agent Performances", value: 200, proportion: 100, children: [] }
       ]
