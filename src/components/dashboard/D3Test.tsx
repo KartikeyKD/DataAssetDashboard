@@ -328,14 +328,14 @@ const ForceGraph: React.FC<ForceGraphProps> = () => {
 
     nodeGroup.append("circle")
       .attr("r", d => {
-        if (d.group === "Root") return 75 * scale;
+        if (d.group === "Root") return 85 * scale;
         if (d.group === "Category") return 55 * scale;
         return 45 * scale;
       })
       .attr("fill", d => getColorByNode(d))
       .attr("stroke", "#fff")
       .attr("stroke-width", 3)
-      .attr("filter", "drop-shadow(0px 2px 4px rgba(0,0,0,0.2))");
+      .attr("filter", "drop-shadow(0px 2px 4px rgba(0,0,0,0.4))");
 
     function wrapText(text: d3.Selection<SVGTextElement, Node, SVGGElement, unknown>, maxWidth: number) {
       text.each(function(d) {
@@ -377,9 +377,9 @@ const ForceGraph: React.FC<ForceGraphProps> = () => {
 
     nodeGroup.append("text")
       .attr("text-anchor", "middle")
-      .attr("y", 0)
+      .attr("y", 2.5 * scale)
       .attr("font-size", d => {
-        if (d.group === "Root") return `${15 * scale}px`;
+        if (d.group === "Root") return `${25 * scale}px`;
         if (d.group === "Category") return `${12 * scale}px`;
         return `${10 * scale}px`;
       })
