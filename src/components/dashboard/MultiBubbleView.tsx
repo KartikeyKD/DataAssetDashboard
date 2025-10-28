@@ -70,8 +70,10 @@ const AutoDrilldownForceGraph: React.FC<Props> = ({
 
   useEffect(() => {
     if (!chartReady) return;
-    const width = window.innerWidth;
-    const height = window.innerHeight;
+    
+    // Use larger dimensions to accommodate all nodes with children
+    const width = 1600;
+    const height = 1600;
     const centerX = width / 2;
     const centerY = height / 2;
 
@@ -226,13 +228,13 @@ const AutoDrilldownForceGraph: React.FC<Props> = ({
 
   return (
     <Dialog open={fullScreenChart} onOpenChange={onClose}>
-      <DialogContent className="w-screen h-screen p-0 m-0 max-w-none overflow-hidden">
-        <div className="flex flex-col justify-center items-center w-full h-full relative">
+      <DialogContent className="w-screen h-screen p-0 m-0 max-w-none overflow-y-auto overflow-x-hidden">
+        <div className="flex flex-col justify-center items-center w-full h-full min-w-[1600px] min-h-[1600px]">
           <svg
             ref={svgRef}
+            width={1600}
+            height={1600}
             style={{
-              width: "100vw",
-              height: "100svh",
               background: "#fafafa",
             }}
           />
