@@ -35,7 +35,6 @@ const AutoDrilldownForceGraph: React.FC<Props> = ({
   setFullScreenChart,
 }) => {
   const svgRef = useRef<SVGSVGElement | null>(null);
-  const [expandedNodes, setExpandedNodes] = useState<string[]>([]);
   const [chartReady, setChartReady] = useState(false);
 
   // ✅ Normalize Data Assets level
@@ -66,7 +65,7 @@ const AutoDrilldownForceGraph: React.FC<Props> = ({
   // 🧠 Render chart only when dialog is open
   useEffect(() => {
     if (!fullScreenChart) return;
-    setTimeout(() => setChartReady(true), 50); // small delay to ensure dialog mounts
+    setTimeout(() => setChartReady(true), 50);
   }, [fullScreenChart]);
 
   useEffect(() => {
@@ -82,8 +81,8 @@ const AutoDrilldownForceGraph: React.FC<Props> = ({
     const root = { id: filteredRoot.id, label: filteredRoot.label };
     const level1 = filteredRoot.children || [];
 
-    const baseRadius = 160; // distance from root
-    const childRadius = 100 ; // distance from parent for L2 nodes
+    const baseRadius = 160;
+    const childRadius = 100;
 
     const angleStep = (2 * Math.PI) / level1.length;
     const level1Positions = level1.map((node, i) => {
@@ -139,145 +138,85 @@ const AutoDrilldownForceGraph: React.FC<Props> = ({
       .attr("fill", (d) => (d.placeholder ? "#777" : "#222"))
       .text((d) => d.label);
 
-    // 🔄 Sequential expansion
-    let currentIndex = 0;
-    const expandNext = () => {
-      if (currentIndex >= level1Positions.length) return;
-      const node = level1Positions[currentIndex];
-      if (expandedNodes.includes(node.id)) {
-        currentIndex++;
-        setTimeout(expandNext, 5000);
-        return;
-      }
-
-      setExpandedNodes((prev) => [...prev, node.id]);
-
+    // 🔄 Expand all nodes simultaneously
+    level1Positions.forEach((node) => {
       const nodeSel = svg
         .selectAll("g")
         .filter((d: any) => d?.id === node.id);
 
-      // Move the node outward a bit
+      // Move the node outward
       const newX = centerX + (baseRadius + 220) * Math.cos(node.angle);
       const newY = centerY + (baseRadius + 220) * Math.sin(node.angle);
 
-      nodeSel
+      nodeSel.transition().attr("transform", `translate(${newX},${newY})`);
+
+      const children = node.children || [];
+
+      if (children.length === 0) return;
+
+      const arcStart = node.angle - Math.PI / 8;
+      const arcEnd = node.angle + Math.PI / 8;
+      const angleStep2 = (arcEnd - arcStart);
+
+      const childPositions = children.map((child, j) => {
+        const angle = arcStart + j * angleStep2;
+        return {
+          ...child,
+          x: newX + childRadius * Math.cos(angle),
+          y: newY + childRadius * Math.sin(angle),
+        };
+      });
+
+      const group = svg.append("g").selectAll("g").data(childPositions).join("g");
+
+      group
+        .append("circle")
+        .attr("r", 40)
+        .attr("fill", "#c67863b0")
+        .attr("cx", newX)
+        .attr("cy", newY)
+        .attr("opacity", 0)
         .transition()
-        .duration(1000)
-        .attr("transform", `translate(${newX},${newY})`)
-        .on("end", () => {
-          const children = node.children || [];
+        .attr("cx", (d) => d.x)
+        .attr("cy", (d) => d.y)
+        .attr("opacity", 1);
 
-          if (children.length === 0) {
-            currentIndex++;
-            setTimeout(expandNext, 5000);
-            return;
+      group.each(function (d) {
+        const words = d.label.split(/\s+/);
+        const maxLineLength = 10;
+        const lines: string[] = [];
+        let currentLine = "";
+
+        words.forEach((word) => {
+          if ((currentLine + " " + word).trim().length <= maxLineLength) {
+            currentLine += " " + word;
+          } else {
+            lines.push(currentLine.trim());
+            currentLine = word;
           }
-
-          // 🟠 Position L2 nodes around the *parent node’s new position*
-          //const angleStep2 = (2 * Math.PI) / children.length;
-
-          const arcStart = node.angle - Math.PI / 7; 
-          const arcEnd = node.angle + Math.PI / 7;
-          const angleStep2 = (arcEnd - arcStart); // / children.length;
-
-          const childPositions = children.map((child, j) => {
-            const angle = arcStart + j * angleStep2;
-            return {
-              ...child,
-              x: newX + childRadius * Math.cos(angle),
-              y: newY + childRadius * Math.sin(angle),
-            };
-          });
-                    
-         /* const childPositions = children.map((child, j) => {
-            const angle = j * angleStep2;
-            return {
-              ...child,
-              x: newX + childRadius * Math.cos(angle),
-              y: newY + childRadius * Math.sin(angle),
-            };
-          });*/
-
-          // 🟣 Add child nodes
-          const group = svg.append("g").selectAll("g").data(childPositions).join("g");
-
-          group
-            .append("circle")
-.attr("r", 40)            .attr("fill", "#c67863b0")
-            .attr("cx", (d) => newX)
-            .attr("cy", (d) => newY)
-            .attr("opacity", 0)
-            .transition()
-            .duration(800)
-            .attr("cx", (d) => d.x)
-            .attr("cy", (d) => d.y)
-            .attr("opacity", 1);
-
-
-            group.each(function (d) {
-              const words = d.label.split(/\s+/); // split label into words
-              const maxLineLength = 10; // max characters per line (tweak as needed)
-
-              // Build lines manually by combining words
-              const lines: string[] = [];
-              let currentLine = "";
-
-              words.forEach((word) => {
-                if ((currentLine + " " + word).trim().length <= maxLineLength) {
-                  currentLine += " " + word;
-                } else {
-                  lines.push(currentLine.trim());
-                  currentLine = word;
-                }
-              });
-              if (currentLine) lines.push(currentLine.trim());
-
-              // Append a <text> with multiple <tspan> elements
-              const text = d3
-                .select(this)
-                .append("text")
-                .attr("text-anchor", "middle")
-                .attr("font-size", 11)
-                .attr("fill", "#222")
-                .attr("font-weight", "bold")
-                .attr("opacity", 0);
-
-              lines.forEach((line, i) => {
-                text
-                  .append("tspan")
-                  .text(line)
-                  .attr("x", d.x)
-                  .attr("y", d.y + i * 13 - ((lines.length - 1) * 13) / 2); // center vertically
-              });
-
-              // Animate opacity after appending
-              text
-                .transition()
-                .duration(800)
-                .attr("opacity", 1);
-            });
-
-        /*   group
-            .append("text")
-            .attr("x", (d) => newX)
-            .attr("y", (d) => newY)
-            .attr("text-anchor", "middle")
-            .attr("font-size", 11)
-            .attr("fill", "#222")
-            .attr("opacity", 0)
-            .text((d) => d.label)
-            .transition()
-            .duration(800)
-            .attr("x", (d) => d.x)
-            .attr("y", (d) => d.y + 4)
-            .attr("opacity", 1); */
-
-          currentIndex++;
-          setTimeout(expandNext, 5000);
         });
-    };
+        if (currentLine) lines.push(currentLine.trim());
 
-    setTimeout(expandNext, 2000);
+        const text = d3
+          .select(this)
+          .append("text")
+          .attr("text-anchor", "middle")
+          .attr("font-size", 11)
+          .attr("fill", "#222")
+          .attr("font-weight", "bold")
+          .attr("opacity", 0);
+
+        lines.forEach((line, i) => {
+          text
+            .append("tspan")
+            .text(line)
+            .attr("x", d.x)
+            .attr("y", d.y + i * 13 - ((lines.length - 1) * 13) / 2);
+        });
+
+        text.transition().attr("opacity", 1);
+      });
+    });
   }, [chartReady, filteredRoot]);
 
   const onClose = () => {
