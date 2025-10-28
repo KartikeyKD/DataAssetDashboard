@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import * as d3 from "d3";
 import { Dialog, DialogContent } from "../ui/dialog";
+import ForceGraph from "./D3Test";
 
 interface HierarchyNode {
   id: string;
@@ -229,7 +230,7 @@ const AutoDrilldownForceGraph: React.FC<Props> = ({
   return (
     <Dialog open={fullScreenChart} onOpenChange={onClose}>
       <DialogContent className="w-screen h-screen p-0 m-0 max-w-none overflow-y-auto overflow-x-hidden">
-        <div className="flex flex-col justify-center items-center w-full h-full min-w-[1600px] min-h-[1600px]">
+        {/* <div className="flex flex-col justify-center items-center w-full h-full min-w-[1600px] min-h-[1600px]">
           <svg
             ref={svgRef}
             width={1600}
@@ -238,7 +239,10 @@ const AutoDrilldownForceGraph: React.FC<Props> = ({
               background: "#fafafa",
             }}
           />
-        </div>
+        </div> */}
+
+
+        <ForceGraph/>
       </DialogContent>
     </Dialog>
   );
