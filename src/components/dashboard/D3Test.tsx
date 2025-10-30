@@ -23,7 +23,6 @@ interface ForceGraphProps {
   height?: number;
 }
 
-// Updated data with separate Profile nodes for Customer and Employee
 const data: GraphData = {
   nodes: [
     { id: "Data Assets", nodeId: "root", group: "Root", value: 100000, cluster: "root" },
@@ -140,7 +139,6 @@ const data: GraphData = {
   ]
 };
 
-
 const ForceGraph: React.FC<ForceGraphProps> = () => {
   const containerRef = useRef<HTMLDivElement>(null);
   const svgRef = useRef<SVGSVGElement>(null);
@@ -159,7 +157,6 @@ const ForceGraph: React.FC<ForceGraphProps> = () => {
     const links = data.links.map(d => ({ ...d }));
     const nodes = data.nodes.map(d => ({ ...d }));
 
-    // Bootstrap color palette for each cluster
     const clusterColors: { [key: string]: { dark: string; light: string } } = {
       "root": { dark: "#212529", light: "#212529" },
       "l1-Airport": { dark: "#0d6efd", light: "#cfe2ff" },
@@ -185,20 +182,56 @@ const ForceGraph: React.FC<ForceGraphProps> = () => {
     };
 
     const categoryNodes = nodes.filter(n => n.group === "Category");
+    
+    // Count subcategories for each category
+    const subcategoryCount = new Map<string, number>();
+    categoryNodes.forEach(cat => {
+      const count = links.filter(l => {
+        const source = typeof l.source === 'string' ? l.source : l.source.id;
+        return source === cat.id;
+      }).length;
+      subcategoryCount.set(cat.id, count);
+    });
+
+    // Separate categories into inner circle (< 5 subcategories) and outer/corner (>= 5 subcategories)
+    const innerCategories = categoryNodes.filter(n => (subcategoryCount.get(n.id) || 0) < 5);
+    const outerCategories = categoryNodes.filter(n => (subcategoryCount.get(n.id) || 0) >= 5);
+
     const categoryPositions = new Map<string, { x: number; y: number }>();
     
-    const categoryRadius = Math.min(containerWidth, containerHeight) * 0.28;
-    categoryNodes.forEach((node, i) => {
-      const angle = (i / categoryNodes.length) * 2 * Math.PI - Math.PI / 2;
+    const innerRadius = Math.min(containerWidth, containerHeight) *0.2;
+    const outerRadius = Math.min(containerWidth, containerHeight) * 0.42;
+
+    // Position inner categories in a circle
+    innerCategories.forEach((node, i) => {
+      const angle = (i / innerCategories.length) * 2 * Math.PI - Math.PI / 2;
       categoryPositions.set(node.id, {
-        x: categoryRadius * Math.cos(angle),
-        y: categoryRadius * Math.sin(angle)
+        x: innerRadius * Math.cos(angle),
+        y: innerRadius * Math.sin(angle)
       });
+    });
+
+    // Position outer categories at corners/extended positions (star points)
+  const starPositions = [
+//   { x: 0, y: -outerRadius },                    // Top
+  { x: outerRadius + 100, y: -outerRadius + 100 },          // Top-right corner
+    { x: 170, y: outerRadius - 100 },                     // Bottom
+//   { x: outerRadius + 90, y: 80 },                     // Right edge
+  { x: -outerRadius - 220, y: outerRadius - 100 },           // Bottom-left corner
+  { x: outerRadius + 160, y: outerRadius - 110 },          // Bottom-right corner
+//   { x: outerRadius, y: 0 },                    // Left edge
+  { x: -outerRadius - 220, y: -outerRadius+ 120 },         // Top-left corner
+];
+
+
+    outerCategories.forEach((node, i) => {
+      const pos = starPositions[i % starPositions.length];
+      categoryPositions.set(node.id, pos);
     });
 
     function radialForce() {
       let nodes: Node[];
-      const strength = 0.9; // Increased strength to enforce circular positioning
+      const strength = 0.9;
 
       function force(alpha: number) {
         nodes.forEach(node => {
@@ -235,17 +268,34 @@ const ForceGraph: React.FC<ForceGraphProps> = () => {
                 );
                 
                 const siblingIndex = siblings.findIndex(s => s.id === node.id);
-                // Force perfect circular distribution - complete the circle even with fewer nodes
-                const angle = (siblingIndex / siblings.length) * 2 * Math.PI;
-                const subRadius = categoryRadius * 0.35;
+                const numSiblings = siblings.length;
                 
-                targetX = parentPos.x + subRadius * Math.cos(angle);
-                targetY = parentPos.y + subRadius * Math.sin(angle);
+                // Calculate angular spacing based on node size
+                const subRadius = innerRadius * 0.25;
+                const nodeRadius = 38;
+                const circumference = 2 * Math.PI * subRadius;
+                const nodeSpacing = (nodeRadius * 2 + 8);
+                
+                const angularWidthPerNode = (nodeSpacing / circumference) * 2 * Math.PI;
+                const totalArc = angularWidthPerNode * numSiblings;
+                const arcSpan = Math.min(totalArc, 2 * Math.PI);
+                const startAngle = -arcSpan / 2;
+                
+                let angle;
+                if (arcSpan >= 2 * Math.PI) {
+                  angle = (siblingIndex / numSiblings) * 2 * Math.PI;
+                } else {
+                  angle = startAngle + (siblingIndex * angularWidthPerNode) + (angularWidthPerNode / 2);
+                }
+                
+                const parentAngle = Math.atan2(parentPos.y, parentPos.x);
+                
+                targetX = parentPos.x + subRadius * Math.cos(parentAngle + angle);
+                targetY = parentPos.y + subRadius * Math.sin(parentAngle + angle);
               }
             }
           }
 
-          // Apply strong force to keep nodes in exact positions
           const dx = targetX - (node.x || 0);
           const dy = targetY - (node.y || 0);
           node.vx! += dx * strength * alpha;
@@ -263,16 +313,16 @@ const ForceGraph: React.FC<ForceGraphProps> = () => {
       .force("radial", radialForce())
       .force("link", d3.forceLink<Node, Link>(links)
         .id(d => d.id)
-        .distance(50 * scale)
-        .strength(0.1)) // Reduced link strength to not interfere with circular positioning
-      .force("charge", d3.forceManyBody().strength(-80 * scale)) // Reduced charge
+        .distance(60 * scale)
+        .strength(0.08))
+      .force("charge", d3.forceManyBody().strength(-120 * scale))
       .force("collision", d3.forceCollide()
         .radius(d => {
-          if (d.group === "Root") return 80 * scale;
+          if (d.group === "Root") return 85 * scale;
           if (d.group === "Category") return 60 * scale;
-          return 48 * scale;
+          return 42 * scale;
         })
-        .strength(0.5)); // Reduced collision strength
+        .strength(0.9));
 
     simulationRef.current = simulation;
 
@@ -330,7 +380,7 @@ const ForceGraph: React.FC<ForceGraphProps> = () => {
       .attr("r", d => {
         if (d.group === "Root") return 85 * scale;
         if (d.group === "Category") return 55 * scale;
-        return 45 * scale;
+        return 38 * scale;
       })
       .attr("fill", d => getColorByNode(d))
       .attr("stroke", "#fff")
@@ -344,7 +394,7 @@ const ForceGraph: React.FC<ForceGraphProps> = () => {
         let word;
         let line: string[] = [];
         let lineNumber = 0;
-        const lineHeight = 1.15;
+        const lineHeight = 1.1;
         const y = textEl.attr("y");
         const dy = 0;
         let tspan = textEl.text(null)
@@ -381,7 +431,7 @@ const ForceGraph: React.FC<ForceGraphProps> = () => {
       .attr("font-size", d => {
         if (d.group === "Root") return `${25 * scale}px`;
         if (d.group === "Category") return `${12 * scale}px`;
-        return `${10 * scale}px`;
+        return `${9 * scale}px`;
       })
       .attr("fill", d => {
         if (d.group === "Root" || d.group === "Category") {
@@ -401,7 +451,7 @@ const ForceGraph: React.FC<ForceGraphProps> = () => {
       })
       .call(function(selection) {
         selection.each(function(d) {
-          const maxWidth = (d.group === "Root" ? 130 : d.group === "Category" ? 90 : 75) * scale;
+          const maxWidth = (d.group === "Root" ? 140 : d.group === "Category" ? 95 : 68) * scale;
           wrapText(d3.select(this), maxWidth);
         });
       });
@@ -507,7 +557,6 @@ const ForceGraph: React.FC<ForceGraphProps> = () => {
     >
       <svg ref={svgRef} />
       
-      {/* Zoom Controls */}
       <div style={{
         position: 'absolute',
         top: '20px',
@@ -610,7 +659,6 @@ const ForceGraph: React.FC<ForceGraphProps> = () => {
           ⟲
         </button>
         
-        {/* Zoom Level Indicator */}
         <div style={{
           padding: '8px 12px',
           borderRadius: '8px',
