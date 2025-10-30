@@ -145,6 +145,7 @@ const ForceGraph: React.FC<ForceGraphProps> = () => {
   const simulationRef = useRef<d3.Simulation<Node, Link> | null>(null);
   const zoomRef = useRef<d3.ZoomBehavior<SVGSVGElement, unknown> | null>(null);
   const [zoomLevel, setZoomLevel] = useState(1.18);
+  const [showSubcategories, setShowSubcategories] = useState(true);
 
   useEffect(() => {
     if (!svgRef.current || !containerRef.current || !data) return;
@@ -183,7 +184,6 @@ const ForceGraph: React.FC<ForceGraphProps> = () => {
 
     const categoryNodes = nodes.filter(n => n.group === "Category");
     
-    // Count subcategories for each category
     const subcategoryCount = new Map<string, number>();
     categoryNodes.forEach(cat => {
       const count = links.filter(l => {
@@ -193,16 +193,14 @@ const ForceGraph: React.FC<ForceGraphProps> = () => {
       subcategoryCount.set(cat.id, count);
     });
 
-    // Separate categories into inner circle (< 5 subcategories) and outer/corner (>= 5 subcategories)
     const innerCategories = categoryNodes.filter(n => (subcategoryCount.get(n.id) || 0) < 5);
     const outerCategories = categoryNodes.filter(n => (subcategoryCount.get(n.id) || 0) >= 5);
 
     const categoryPositions = new Map<string, { x: number; y: number }>();
     
-    const innerRadius = Math.min(containerWidth, containerHeight) *0.2;
+    const innerRadius = Math.min(containerWidth, containerHeight) * 0.2;
     const outerRadius = Math.min(containerWidth, containerHeight) * 0.42;
 
-    // Position inner categories in a circle
     innerCategories.forEach((node, i) => {
       const angle = (i / innerCategories.length) * 2 * Math.PI - Math.PI / 2;
       categoryPositions.set(node.id, {
@@ -211,18 +209,13 @@ const ForceGraph: React.FC<ForceGraphProps> = () => {
       });
     });
 
-    // Position outer categories at corners/extended positions (star points)
-  const starPositions = [
-//   { x: 0, y: -outerRadius },                    // Top
-  { x: outerRadius + 100, y: -outerRadius + 100 },          // Top-right corner
-    { x: 170, y: outerRadius - 100 },                     // Bottom
-//   { x: outerRadius + 90, y: 80 },                     // Right edge
-  { x: -outerRadius - 220, y: outerRadius - 100 },           // Bottom-left corner
-  { x: outerRadius + 160, y: outerRadius - 110 },          // Bottom-right corner
-//   { x: outerRadius, y: 0 },                    // Left edge
-  { x: -outerRadius - 220, y: -outerRadius+ 120 },         // Top-left corner
-];
-
+    const starPositions = [
+      { x: outerRadius + 100, y: -outerRadius + 100 },
+      { x: 170, y: outerRadius - 100 },
+      { x: -outerRadius - 220, y: outerRadius - 100 },
+      { x: outerRadius + 160, y: outerRadius - 110 },
+      { x: -outerRadius - 220, y: -outerRadius + 120 },
+    ];
 
     outerCategories.forEach((node, i) => {
       const pos = starPositions[i % starPositions.length];
@@ -258,40 +251,45 @@ const ForceGraph: React.FC<ForceGraphProps> = () => {
               const parentPos = categoryPositions.get(sourceId);
               
               if (parentPos) {
-                const siblings = nodes.filter(n => 
-                  n.group === "Subcategory" && 
-                  links.some(l => {
-                    const lSource = typeof l.source === 'object' ? l.source.id : l.source;
-                    const lTarget = typeof l.target === 'object' ? l.target.id : l.target;
-                    return lSource === sourceId && lTarget === n.id;
-                  })
-                );
-                
-                const siblingIndex = siblings.findIndex(s => s.id === node.id);
-                const numSiblings = siblings.length;
-                
-                // Calculate angular spacing based on node size
-                const subRadius = innerRadius * 0.25;
-                const nodeRadius = 38;
-                const circumference = 2 * Math.PI * subRadius;
-                const nodeSpacing = (nodeRadius * 2 + 8);
-                
-                const angularWidthPerNode = (nodeSpacing / circumference) * 2 * Math.PI;
-                const totalArc = angularWidthPerNode * numSiblings;
-                const arcSpan = Math.min(totalArc, 2 * Math.PI);
-                const startAngle = -arcSpan / 2;
-                
-                let angle;
-                if (arcSpan >= 2 * Math.PI) {
-                  angle = (siblingIndex / numSiblings) * 2 * Math.PI;
+                if (!showSubcategories) {
+                  // Collapse to parent position
+                  targetX = parentPos.x;
+                  targetY = parentPos.y;
                 } else {
-                  angle = startAngle + (siblingIndex * angularWidthPerNode) + (angularWidthPerNode / 2);
+                  const siblings = nodes.filter(n => 
+                    n.group === "Subcategory" && 
+                    links.some(l => {
+                      const lSource = typeof l.source === 'object' ? l.source.id : l.source;
+                      const lTarget = typeof l.target === 'object' ? l.target.id : l.target;
+                      return lSource === sourceId && lTarget === n.id;
+                    })
+                  );
+                  
+                  const siblingIndex = siblings.findIndex(s => s.id === node.id);
+                  const numSiblings = siblings.length;
+                  
+                  const subRadius = innerRadius * 0.25;
+                  const nodeRadius = 38;
+                  const circumference = 2 * Math.PI * subRadius;
+                  const nodeSpacing = (nodeRadius * 2 + 8);
+                  
+                  const angularWidthPerNode = (nodeSpacing / circumference) * 2 * Math.PI;
+                  const totalArc = angularWidthPerNode * numSiblings;
+                  const arcSpan = Math.min(totalArc, 2 * Math.PI);
+                  const startAngle = -arcSpan / 2;
+                  
+                  let angle;
+                  if (arcSpan >= 2 * Math.PI) {
+                    angle = (siblingIndex / numSiblings) * 2 * Math.PI;
+                  } else {
+                    angle = startAngle + (siblingIndex * angularWidthPerNode) + (angularWidthPerNode / 2);
+                  }
+                  
+                  const parentAngle = Math.atan2(parentPos.y, parentPos.x);
+                  
+                  targetX = parentPos.x + subRadius * Math.cos(parentAngle + angle);
+                  targetY = parentPos.y + subRadius * Math.sin(parentAngle + angle);
                 }
-                
-                const parentAngle = Math.atan2(parentPos.y, parentPos.x);
-                
-                targetX = parentPos.x + subRadius * Math.cos(parentAngle + angle);
-                targetY = parentPos.y + subRadius * Math.sin(parentAngle + angle);
               }
             }
           }
@@ -320,7 +318,7 @@ const ForceGraph: React.FC<ForceGraphProps> = () => {
         .radius(d => {
           if (d.group === "Root") return 85 * scale;
           if (d.group === "Category") return 60 * scale;
-          return 42 * scale;
+          return showSubcategories ? 42 * scale : 5 * scale;
         })
         .strength(0.9));
 
@@ -365,7 +363,10 @@ const ForceGraph: React.FC<ForceGraphProps> = () => {
       .data(links)
       .join("line")
       .attr("stroke", "#adb5bd")
-      .attr("stroke-opacity", 0.3)
+      .attr("stroke-opacity", showSubcategories ? 0.3 : d => {
+        const target = typeof d.target === 'object' ? d.target : nodes.find(n => n.id === d.target);
+        return target && target.group === "Subcategory" ? 0 : 0.3;
+      })
       .attr("stroke-width", 1.5);
 
     const nodeGroup = g.append("g")
@@ -374,7 +375,8 @@ const ForceGraph: React.FC<ForceGraphProps> = () => {
       .data(nodes)
       .join("g")
       .attr("class", "node-group")
-      .style("cursor", "pointer");
+      .style("cursor", "pointer")
+      .style("opacity", d => !showSubcategories && d.group === "Subcategory" ? 0 : 1);
 
     nodeGroup.append("circle")
       .attr("r", d => {
@@ -512,7 +514,7 @@ const ForceGraph: React.FC<ForceGraphProps> = () => {
     return () => {
       simulation.stop();
     };
-  }, []);
+  }, [showSubcategories]);
 
   const handleZoomIn = () => {
     if (svgRef.current && zoomRef.current) {
@@ -541,6 +543,10 @@ const ForceGraph: React.FC<ForceGraphProps> = () => {
         .duration(500)
         .call(zoomRef.current.transform, resetTransform);
     }
+  };
+
+  const handleToggleSubcategories = () => {
+    setShowSubcategories(!showSubcategories);
   };
 
   return (
@@ -657,6 +663,45 @@ const ForceGraph: React.FC<ForceGraphProps> = () => {
           title="Reset View"
         >
           ⟲
+        </button>
+
+        <button
+          onClick={handleToggleSubcategories}
+          style={{
+            width: '45px',
+            height: '45px',
+            borderRadius: '8px',
+            border: '2px solid #209326',
+            backgroundColor: showSubcategories ? '#209326' : '#ffffff',
+            color: showSubcategories ? '#ffffff' : '#209326',
+            fontSize: '18px',
+            fontWeight: '600',
+            cursor: 'pointer',
+            boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            transition: 'all 0.2s'
+          }}
+          onMouseEnter={(e) => {
+            if (showSubcategories) {
+              e.currentTarget.style.backgroundColor = '#1a7a1f';
+            } else {
+              e.currentTarget.style.backgroundColor = '#209326';
+              e.currentTarget.style.color = '#ffffff';
+            }
+          }}
+          onMouseLeave={(e) => {
+            if (showSubcategories) {
+              e.currentTarget.style.backgroundColor = '#209326';
+            } else {
+              e.currentTarget.style.backgroundColor = '#ffffff';
+              e.currentTarget.style.color = '#209326';
+            }
+          }}
+          title={showSubcategories ? "Collapse Subcategories" : "Expand Subcategories"}
+        >
+          {showSubcategories ? '◉' : '○'}
         </button>
         
         <div style={{
