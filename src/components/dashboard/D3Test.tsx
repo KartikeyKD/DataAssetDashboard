@@ -202,7 +202,7 @@ const ForceGraph: React.FC<ForceGraphProps> = () => {
     const outerRadius = Math.min(containerWidth, containerHeight) * 0.42;
 
     innerCategories.forEach((node, i) => {
-      const angle = (i / innerCategories.length) * 2 * Math.PI - Math.PI / 2;
+      const angle = (i / innerCategories.length) * 1.58 * Math.PI - Math.PI ;
       categoryPositions.set(node.id, {
         x: innerRadius * Math.cos(angle),
         y: innerRadius * Math.sin(angle)
@@ -210,11 +210,11 @@ const ForceGraph: React.FC<ForceGraphProps> = () => {
     });
 
     const starPositions = [
-      { x: outerRadius + 100, y: -outerRadius + 100 },
-      { x: 170, y: outerRadius - 100 },
-      { x: -outerRadius - 220, y: outerRadius - 100 },
-      { x: outerRadius + 160, y: outerRadius - 110 },
-      { x: -outerRadius - 220, y: -outerRadius + 120 },
+      { x: outerRadius , y: -outerRadius + 300 }, //Customer
+      { x: 100, y: outerRadius -100 }, //Employee
+      { x: -outerRadius + 200, y: outerRadius - 100 }, //Crew
+      { x: outerRadius + 150, y: outerRadius - 200 }, //Sales
+      { x: -outerRadius, y: -outerRadius + 139 }, //Flight
     ];
 
     outerCategories.forEach((node, i) => {
@@ -275,12 +275,12 @@ const ForceGraph: React.FC<ForceGraphProps> = () => {
                   
                   const angularWidthPerNode = (nodeSpacing / circumference) * 2 * Math.PI;
                   const totalArc = angularWidthPerNode * numSiblings;
-                  const arcSpan = Math.min(totalArc, 2 * Math.PI);
+                  const arcSpan = Math.min(totalArc, Math.PI);
                   const startAngle = -arcSpan / 2;
                   
                   let angle;
                   if (arcSpan >= 2 * Math.PI) {
-                    angle = (siblingIndex / numSiblings) * 2 * Math.PI;
+                    angle = (siblingIndex / numSiblings) * 2.5 * Math.PI;
                   } else {
                     angle = startAngle + (siblingIndex * angularWidthPerNode) + (angularWidthPerNode / 2);
                   }
