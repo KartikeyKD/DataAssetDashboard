@@ -54,18 +54,7 @@ export const ProblemColumnsAnalysis = () => {
   }
 
   return (
-    <div className="space-y-6">
-      {/* Debug: Show actual values */}
-      <div className="bg-muted p-4 rounded-lg text-sm">
-        <div><strong>Debug - Naming Issues:</strong></div>
-        <div>Special chars: {data?.global_analytics?.naming_issues?.columns_with_special_chars}</div>
-        <div>Spaces: {data?.global_analytics?.naming_issues?.columns_with_spaces}</div>
-        <div>Too long: {data?.global_analytics?.naming_issues?.columns_name_too_long_64}</div>
-        <div>Start with number: {data?.global_analytics?.naming_issues?.columns_starting_with_number}</div>
-        <div><strong>Top Tables Count:</strong> {topTablesLowDoc.length}</div>
-        <div><strong>Top Schemas Count:</strong> {topSchemasLowDoc.length}</div>
-      </div>
-      
+    <div className="space-y-6">    
       <div className="grid gap-6 md:grid-cols-2">
         {/* Problem Columns */}
         <Card>

@@ -3,7 +3,7 @@ import { Progress } from "@/components/ui/progress";
 import { PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip } from "recharts";
 import { useGovernanceData } from "@/hooks/useGovernanceData";
 
-const COLORS = ['hsl(var(--chart-1))', 'hsl(var(--chart-2))', 'hsl(var(--chart-3))', 'hsl(var(--chart-4))'];
+const COLORS = ['#0096c7', '#0077b6', '#023e8a', '#48cae4'];
 
 export const GovernanceKPIs = () => {
   const { data, loading } = useGovernanceData();
@@ -95,7 +95,7 @@ export const GovernanceKPIs = () => {
                   ))}
                 </Pie>
                 <Tooltip 
-                  formatter={(value: number) => [`${value.toFixed(1)}%`, '']}
+                  formatter={(value: number,name:string) => [`${value.toFixed(1)}%`,name ]}
                   contentStyle={{
                     backgroundColor: 'hsl(var(--card))',
                     border: '1px solid hsl(var(--border))',
@@ -156,7 +156,7 @@ export const GovernanceKPIs = () => {
                 />
                 <Bar 
                   dataKey="value" 
-                  fill="hsl(var(--primary))"
+                  fill="#023e8a"
                   radius={[0, 4, 4, 0]}
                 />
               </BarChart>

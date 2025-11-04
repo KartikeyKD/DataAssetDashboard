@@ -47,21 +47,21 @@ export const TrendProgressChart = () => {
                 <Line 
                   type="monotone" 
                   dataKey="l1Coverage" 
-                  stroke="hsl(var(--primary))" 
+                  stroke="#023e8a" 
                   strokeWidth={2}
                   name="L1 Coverage %"
                 />
                 <Line 
                   type="monotone" 
                   dataKey="l2Coverage" 
-                  stroke="hsl(var(--chart-2))" 
+                  stroke="#0096c7" 
                   strokeWidth={2}
                   name="L2 Coverage %"
                 />
                 <Line 
                   type="monotone" 
                   dataKey="documentation" 
-                  stroke="hsl(var(--chart-3))" 
+                  stroke="#0077b6" 
                   strokeWidth={2}
                   name="Documentation %"
                 />
@@ -98,13 +98,13 @@ export const TrendProgressChart = () => {
                 />
                 <Bar 
                   dataKey="resolved" 
-                  fill="hsl(var(--chart-1))" 
+                  fill="#0096c7" 
                   name="Problems Resolved"
                   radius={[4, 4, 0, 0]}
                 />
                 <Bar 
                   dataKey="added" 
-                  fill="hsl(var(--chart-5))" 
+                  fill="#023e8a" 
                   name="New Problems"
                   radius={[4, 4, 0, 0]}
                 />

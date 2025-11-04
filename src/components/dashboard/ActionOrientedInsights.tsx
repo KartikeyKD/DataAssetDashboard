@@ -150,7 +150,7 @@ export const ActionOrientedInsights = () => {
           <div className="space-y-3">
             {highUsageLowDoc.map((table, index) => (
               <div key={index} className="flex items-center justify-between p-3 border rounded-lg">
-                <div className="space-y-1">
+                <div className="space-y-1 w-2/3">
                   <div className="font-medium text-foreground truncate">
                     {table.schema}.{table.table}
                   </div>
