@@ -390,9 +390,13 @@ const ForceGraph: React.FC<ForceGraphProps> = () => {
 
     simulation.on("tick", () => {
       link
+      //@ts-expect-error
         .attr("x1", d => (d.source as Node).x!)
+        //@ts-expect-error
         .attr("y1", d => (d.source as Node).y!)
+        //@ts-expect-error
         .attr("x2", d => (d.target as Node).x!)
+        //@ts-expect-error
         .attr("y2", d => (d.target as Node).y!);
 
       nodeGroup.attr("transform", d => `translate(${d.x},${d.y})`);
