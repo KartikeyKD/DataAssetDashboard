@@ -21,8 +21,6 @@ interface ForceGraphProps {
   height?: number;
 }
 
-
-
 const ForceGraph: React.FC<ForceGraphProps> = () => {
   const containerRef = useRef<HTMLDivElement>(null);
   const svgRef = useRef<SVGSVGElement>(null);
