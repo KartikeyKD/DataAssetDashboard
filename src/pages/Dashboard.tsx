@@ -39,14 +39,15 @@ export const Dashboard = () => {
   
   // GVC data state
   const [gvcData, setGvcData] = useState<any[]>([]);
-  
+      const fileId = "1HttuMwmxkD6kD8xo8LqEaloI7ytWXJzy";
+
   // Load GVC data
   useEffect(() => {
-    fetch('/gvc.json')
-      .then(response => response.json())
-      .then(data => setGvcData(data))
-      .catch(error => console.error('Error loading GVC data:', error));
-  }, []);
+        fetch("https://dgjzkexbyaz3g5sj.public.blob.vercel-storage.com/gvc.json")
+            .then(response => response.json())
+            .then(data => setGvcData(data))
+            .catch(error => console.error('Error loading GVC data:', error));
+    }, []);
   
   // Separate status filter states for L1 and L2
   const [l1StatusFilters, setL1StatusFilters] = useState({

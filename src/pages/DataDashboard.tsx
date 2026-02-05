@@ -27,8 +27,9 @@ export const DataDashboard = () => {
     const [gvcData, setGvcData] = useState<any[]>([]);
     const [active, setActive] = useState<number | null>(null);
     const [jsonData, setJsonData] = useState<any>()
+    const fileId = "1HttuMwmxkD6kD8xo8LqEaloI7ytWXJzy";
     useEffect(() => {
-        fetch('/gvc.json')
+        fetch("https://dgjzkexbyaz3g5sj.public.blob.vercel-storage.com/gvc.json")
             .then(response => response.json())
             .then(data => setGvcData(data))
             .catch(error => console.error('Error loading GVC data:', error));
